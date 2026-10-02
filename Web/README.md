@@ -170,6 +170,25 @@ Su Android/Chrome: menu → **Installa app**. Poi vai in Promemoria → Attiva �
 
 ## Aggiornare l'app
 
+Se dopo un aggiornamento vedi ancora la versione vecchia, è quasi sempre una cache. Controlla la versione in **Mappa → ⓘ Info → Versione**
+(deve coincidere con `APP_VERSION` in `public/js/version.js`). Se non coincide:
+
+1. **Cloudflare** (se usi un tunnel o il proxy): Dashboard → dominio → *Caching* → *Configuration* → **Purge Everything**.
+   Cloudflare mette in cache di default `.js`, `.css` e immagini, anche sul bordo della rete.
+2. **Browser**: ricarica forzata (⌘⇧R su Mac). Su iPhone, chiudi l'app dallo switcher e riaprila; se non basta, Impostazioni →
+   Safari → Avanzate → Dati dei siti web → rimuovi il dominio.
+3. Verifica cosa serve davvero il server:
+
+   ```bash
+   curl -sI https://TUODOMINIO/madovai/js/ui/Sheet.js | grep -i -E "cache-control|cf-cache-status|last-modified|etag"
+   ```
+
+   `cache-control: no-cache` è corretto (il browser deve riconfermare ogni volta, con una risposta 304 minuscola quando il file non è cambiato).
+   `cf-cache-status: HIT` insieme a un `last-modified` vecchio significa che sta rispondendo la cache di Cloudflare.
+
+Dalla versione 1.0.4 il server dichiara JS/CSS/HTML sempre da riconfermare e il service worker prende prima la rete (la cache solo offline o se la
+rete non risponde entro 4 secondi), quindi gli aggiornamenti arrivano alla prima apertura.
+
 Dal Mac, rilancia lo stesso `rsync` del punto 1 (non tocca `config.php` né i dati). Se è cambiato qualcosa lato server non serve altro:
 Apache usa subito i nuovi file. Gli utenti con l'app installata ricevono la nuova versione alla successiva apertura (a volte alla seconda).
 Per forzare subito un aggiornamento dei dati: `sudo -u www-data php /var/www/html/madovai/bin/build-data.php`.

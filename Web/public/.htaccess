@@ -17,11 +17,13 @@
     Header set Cache-Control "no-cache"
     Header set Service-Worker-Allowed "/"
   </Files>
-  <FilesMatch "\.(html|webmanifest)$">
+  # Code and pages: ALWAYS revalidate with the server (a 304 is a few hundred bytes). A fixed max-age here used to
+  # leave visitors on an old, buggy app for up to an hour after an update.
+  <FilesMatch "\.(html|webmanifest|js|css)$">
     Header set Cache-Control "no-cache"
   </FilesMatch>
-  <FilesMatch "\.(png|css|js)$">
-    Header set Cache-Control "public, max-age=3600"
+  <FilesMatch "\.(png|ico)$">
+    Header set Cache-Control "public, max-age=86400"
   </FilesMatch>
 </IfModule>
 

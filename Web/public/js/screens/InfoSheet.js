@@ -3,6 +3,7 @@ import { Icon } from '../icons.js';
 import { Sheet } from '../ui/Sheet.js';
 import { NavBar, Section } from '../ui/components.js';
 import { useSheet } from '../ui/Sheet.js';
+import { APP_VERSION } from '../version.js';
 
 export function InfoSheetModal({ onClose }) {
   return html`<${Sheet} onClose=${onClose} detents=${['large']} initial="large" form=${true}><${InfoSheet} /><//>`;
@@ -47,6 +48,7 @@ export function InfoSheet() {
       <${Section} title="Crediti">
         <div class="pad"><div class="t-sub semibold">Dati trasporto Roma</div><div class="t-foot sec" style="margin-top:4px">Roma Servizi per la Mobilità — romamobilita.it, licenza CC-BY 3.0 Italia.</div></div>
         <div class="pad" style="border-top:0.5px solid var(--sep)"><div class="t-sub semibold">Dati Cotral</div><div class="t-foot sec" style="margin-top:4px">Endpoint e feed GTFS pubblici di Cotral S.p.A. Orari e ritardi dei treni: ASTRAL S.p.A.</div></div>
+        <div class="pad" style="border-top:0.5px solid var(--sep)"><div class="t-sub semibold">Versione</div><div class="t-foot sec" style="margin-top:4px">Madovai Web ${APP_VERSION}</div></div>
         <div class="pad" style="border-top:0.5px solid var(--sep)"><div class="t-sub semibold">Mappa</div><div class="t-foot sec" style="margin-top:4px">© OpenStreetMap contributors (openstreetmap.org/copyright).</div></div>
       <//>
     </div>

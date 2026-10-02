@@ -120,7 +120,7 @@ Comportamento (identico a iOS, vedi `ReminderScheduler.swift`/`ReminderNotifier.
 al minuto previsto (giorno della settimana + HH:MM, ora di Roma) recupera il prossimo passaggio e manda **subito** una push;
 se il recupero fallisce (rete, nessun dato) **nessuna notifica**, ritenta dopo 2 minuti, max 15 tentativi, poi rinuncia fino al
 prossimo giorno previsto. Una sola esecuzione per promemoria per giorno (stato in `state.sqlite`). Finestra di tolleranza se il cron salta un minuto.
-Testi (`title`/`body`) come `ReminderNotifier`. Payload push: `{"title","body","tag":reminderId,"url":"/#/promemoria"}`.
+Testi (`title`/`body`) come `ReminderNotifier`. Payload push: `{"title","body","tag":reminderId,"url":"./#/promemoria"}`.
 
 ## Schema `data/madovai.sqlite` (scritto da `bin/build-data.php`, letto dagli endpoint)
 

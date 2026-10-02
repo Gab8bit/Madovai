@@ -14,7 +14,7 @@ $p = N::payload($bus, $st('07:45', 0));
 same('Prossimo bus alle 07:45', $p['title'], 'bus title');
 same('Il prossimo bus per Acilia non fa ritardo.', $p['body'], 'on time (delay 0)');
 same('abc', $p['tag'], 'tag = reminder id');
-same('/#/promemoria', $p['url'], 'url');
+same('./#/promemoria', $p['url'], 'url');
 same('Il prossimo bus per Acilia non fa ritardo.', N::payload($bus, $st('07:45', null))['body'], 'unknown delay = on time text');
 same('Il prossimo bus per Acilia non fa ritardo.', N::payload($bus, $st('07:45', -3))['body'], 'negative delay = on time text');
 same('Il prossimo bus per Acilia è in ritardo di 1 minuto.', N::payload($bus, $st('07:45', 1))['body'], '1 minute late (singular)');

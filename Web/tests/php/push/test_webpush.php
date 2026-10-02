@@ -104,7 +104,7 @@ if ($node === '') {
 } else {
     $receiver = Ec::generate();
     $authSecret = random_bytes(16);
-    $payload = json_encode(['title' => 'Prossimo bus alle 07:45', 'body' => "Il prossimo bus per Città è in ritardo di 3 minuti.", 'tag' => 'x', 'url' => '/#/promemoria'], JSON_UNESCAPED_UNICODE);
+    $payload = json_encode(['title' => 'Prossimo bus alle 07:45', 'body' => "Il prossimo bus per Città è in ritardo di 3 minuti.", 'tag' => 'x', 'url' => './#/promemoria'], JSON_UNESCAPED_UNICODE);
     foreach ([$payload, 'a', str_repeat('é', 1500)] as $i => $msg) {
         $body = WebPush::encrypt($msg, $receiver['public'], $authSecret);
         $in = json_encode(['body' => B64::enc($body), 'uaPrivate' => B64::enc($receiver['private']), 'uaPublic' => B64::enc($receiver['public']), 'auth' => B64::enc($authSecret)]);

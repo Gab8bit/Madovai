@@ -33,7 +33,20 @@ e fa da proxy/cache verso i feed live; il browser scarica solo JSON leggeri.
 
 ## Installazione
 
-1. **Carica** il progetto sul server. Imposta il `DocumentRoot` (o un `Alias`) su `public/`. Esempio vhost:
+1. **Carica** il progetto sul server. Due modi:
+
+   **A) Sottocartella di un sito esistente** (es. `/var/www/html/madovai` → `https://tuodominio/madovai/`).
+   Carica *tutto* il progetto: l'`.htaccess` nella radice serve ogni richiesta da `public/` e nasconde `src/`, `bin/`,
+   `docs/`, `tests/` e `config.php`. Richiede `mod_rewrite` e `AllowOverride All` per quella cartella:
+
+   ```bash
+   sudo a2enmod rewrite headers deflate
+   # in /etc/apache2/apache2.conf (o nel vhost), per la cartella che contiene i progetti:
+   #   <Directory /var/www/html>  ->  AllowOverride All
+   sudo systemctl reload apache2
+   ```
+
+   **B) Dominio/vhost dedicato**: imposta il `DocumentRoot` su `public/`:
 
    ```apache
    <VirtualHost *:443>
@@ -47,17 +60,17 @@ e fa da proxy/cache verso i feed live; il browser scarica solo JSON leggeri.
    </VirtualHost>
    ```
 
-   Se invece lo metti in una sottocartella di un sito esistente, i file `.htaccess` in `src/`, `data/`, `bin/`, `docs/`, `tests/`
-   negano l'accesso web (`AllowOverride All` necessario). Meglio comunque tenere `data/` fuori dalla web root (vedi `data_dir`).
+   **Importante**: tieni la cartella dati **fuori dalla web root** (`data_dir` in `config.php`, vedi sotto). Contiene il
+   database e la chiave privata delle notifiche, e non deve mai dipendere da un `.htaccess` per restare privata.
 
-2. **Permessi**: l'utente del web server (es. `www-data`) deve poter scrivere in `data/`.
+2. **Cartella dati e permessi** (l'utente del web server, es. `www-data`, deve poterci scrivere):
 
    ```bash
-   chown -R www-data:www-data data
+   sudo mkdir -p /var/www/madovai-data && sudo chown -R www-data:www-data /var/www/madovai-data
    ```
 
-3. **Configurazione (opzionale)**: copia `config.sample.php` in `config.php` e imposta almeno `vapid_subject`
-   (un `mailto:` tuo, richiesto dai servizi push) ed eventualmente `data_dir`.
+3. **Configurazione**: copia `config.sample.php` in `config.php` e imposta `data_dir` (la cartella del punto 2) e
+   `vapid_subject` (un `mailto:` tuo, richiesto dai servizi push).
 
 4. **Genera i dati statici** (scarica i 3 feed GTFS ed elabora, ~2-3 minuti):
 
@@ -75,9 +88,9 @@ e fa da proxy/cache verso i feed live; il browser scarica solo JSON leggeri.
 
    ```cron
    # promemoria: ogni minuto
-   * * * * * php /var/www/madovai/bin/remind.php >> /var/www/madovai/data/remind.log 2>&1
+   * * * * * php /var/www/html/madovai/bin/remind.php >> /var/www/madovai-data/remind.log 2>&1
    # dati statici: ogni notte alle 04:30 (i feed cambiano raramente)
-   30 4 * * * php /var/www/madovai/bin/build-data.php >> /var/www/madovai/data/build.log 2>&1
+   30 4 * * * php /var/www/html/madovai/bin/build-data.php >> /var/www/madovai-data/build.log 2>&1
    ```
 
 7. Apri `https://madovai.example.it/` dal telefono e usa **Condividi → Aggiungi alla schermata Home** (iPhone) o

@@ -18,7 +18,7 @@ final class ReminderNotifier
         'RV_CATMOR' => 'Catalano → Morlupo',
     ];
 
-    public const URL = '/#/promemoria';
+    public const URL = './#/promemoria';
 
     /**
      * @param array<string,mixed> $reminder validated reminder

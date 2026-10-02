@@ -22,6 +22,16 @@ function App() {
     const hash = location.hash.replace('#/', '');
     return TABS.some((t) => t.id === hash) || hash === 'promemoria' ? (hash === 'promemoria' ? 'reminders' : hash) : 'map';
   });
+  // A notification tap while the app is already open only changes the hash (e.g. "#/promemoria").
+  useEffect(() => {
+    const onHash = () => {
+      const h = location.hash.replace('#/', '');
+      const next = h === 'promemoria' ? 'reminders' : h;
+      if (TABS.some((t) => t.id === next)) setTab(next);
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
   useEffect(() => { history.replaceState(null, '', tab === 'map' ? location.pathname + location.search : `#/${tab}`); }, [tab]);
 
   return html`

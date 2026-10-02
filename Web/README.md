@@ -187,6 +187,12 @@ Se dopo un aggiornamento vedi ancora la versione vecchia, è quasi sempre una ca
    `cache-control: no-cache` è corretto (il browser deve riconfermare ogni volta, con una risposta 304 minuscola quando il file non è cambiato).
    `cf-cache-status: HIT` insieme a un `last-modified` vecchio significa che sta rispondendo la cache di Cloudflare.
 
+**Se usi Cloudflare** (tunnel o proxy) c'è un'impostazione che aggira tutto questo: *Caching → Configuration → **Browser Cache TTL***.
+Il valore predefinito (4 ore) **riscrive** l'intestazione `Cache-Control` di JS/CSS/immagini, quindi i browser tengono i file vecchi
+per 4 ore anche se il server chiede di riconfermarli (lo riconosci da `cache-control: max-age=14400` nel `curl -sI` qui sopra).
+Impostalo su **"Respect Existing Headers"**, oppure crea una *Cache Rule* per il tuo percorso (es. `URI Path starts with /madovai/`)
+con *Browser TTL → Respect origin* e *Edge TTL → Respect origin*. Poi fai il Purge.
+
 Dalla versione 1.0.4 il server dichiara JS/CSS/HTML sempre da riconfermare e il service worker prende prima la rete (la cache solo offline o se la
 rete non risponde entro 4 secondi), quindi gli aggiornamenti arrivano alla prima apertura.
 

@@ -222,7 +222,7 @@ export function MapScreen({ active }) {
 
     <div class="map-top">
       <${SearchBar} onSelectStop=${onSelectStop} onSelectRoute=${onSelectRoute} />
-      ${loadingData && !dataError && html`<div class="loading-pill glass-soft" role="status"><div class="spinner small"></div>Carico fermate e linee…</div>`}
+      ${loadingData && !dataError && html`<div class="loading-banner glass-soft" role="status"><div class="spinner"></div><span>Caricamento dati…</span></div>`}
       ${dataError && html`<${ErrorBanner} title=${dataError.notReady ? 'Dati non ancora disponibili' : 'Errore di connessione'}
         message=${dataError.notReady ? 'Il server sta ancora preparando i dati delle linee. Riprova tra qualche minuto.' : dataError.message}
         onRetry=${() => loadViewport()} />`}

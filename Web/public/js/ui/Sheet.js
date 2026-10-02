@@ -49,6 +49,12 @@ export function Sheet({ onClose, detents = ['medium', 'large'], initial = 'mediu
     return () => cancelAnimationFrame(id);
   }, []);
 
+  useEffect(() => () => {
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+    window.removeEventListener('pointercancel', onPointerUp);
+  }, []);
+
   // Esc closes (desktop).
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') close(); };
@@ -68,20 +74,24 @@ export function Sheet({ onClose, detents = ['medium', 'large'], initial = 'mediu
 
   // A drag starts only after the pointer actually moves a few pixels, and never from an interactive element —
   // otherwise capturing the pointer on pointerdown would swallow the click on header buttons (e.g. the favorite star).
+  // Move/up listeners live on `window` for the duration of the gesture, so they keep working when the pointer leaves
+  // the sheet (a mouse drag, or a fast finger) without needing pointer capture.
   const onPointerDown = (e) => {
     const handle = e.target.closest?.('.grabber-zone, [data-drag]');
     if (!handle || !sheetRef.current) return;
     if (e.target.closest('button, a, input, select, textarea') && !e.target.closest('.grabber-zone')) return;
-    drag.current = { startY: e.clientY, startH: sheetRef.current.offsetHeight, lastY: e.clientY, lastT: performance.now(), vy: 0, active: false, pointerId: e.pointerId };
+    drag.current = { startY: e.clientY, startH: sheetRef.current.offsetHeight, lastY: e.clientY, lastT: performance.now(), vy: 0, active: false };
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
   };
-  const onPointerMove = (e) => {
+  function onPointerMove(e) {
     const d = drag.current;
     if (!d) return;
     if (!d.active) {
       if (Math.abs(e.clientY - d.startY) < 5) return;
       d.active = true;
       sheetRef.current.classList.add('dragging');
-      sheetRef.current.setPointerCapture?.(d.pointerId);
     }
     const now = performance.now();
     d.vy = (e.clientY - d.lastY) / Math.max(1, now - d.lastT); // px/ms, + = downwards
@@ -89,8 +99,11 @@ export function Sheet({ onClose, detents = ['medium', 'large'], initial = 'mediu
     const maxH = px('large');
     const h = Math.max(60, Math.min(maxH, d.startH - (e.clientY - d.startY)));
     sheetRef.current.style.height = h + 'px';
-  };
-  const onPointerUp = () => {
+  }
+  function onPointerUp() {
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+    window.removeEventListener('pointercancel', onPointerUp);
     const d = drag.current;
     if (!d) return;
     drag.current = null;
@@ -98,16 +111,24 @@ export function Sheet({ onClose, detents = ['medium', 'large'], initial = 'mediu
     const el = sheetRef.current;
     el.classList.remove('dragging');
     const h = el.offsetHeight;
-    el.style.height = '';
     const mediumH = px('medium'), largeH = px('large');
-    const flingDown = d.vy > 0.6, flingUp = d.vy < -0.6;
+    // A "fling" needs real travel: a tap with a few px of finger jitter has a huge px/ms velocity but isn't a gesture.
+    const traveled = Math.abs(d.lastY - d.startY);
+    const flingDown = traveled > 28 && d.vy > 0.6, flingUp = traveled > 28 && d.vy < -0.6;
     const canLarge = detents.includes('large'), canMedium = detents.includes('medium');
-    if (flingDown && h < largeH - 40 || h < mediumH * 0.6) { close(); return; }
-    if (flingUp && canLarge) { setDetent('large'); return; }
-    if (flingDown && canMedium && h >= mediumH * 0.6) { setDetent('medium'); return; }
-    const target = canLarge && (!canMedium || Math.abs(h - largeH) < Math.abs(h - mediumH)) ? 'large' : 'medium';
+    // Like iOS: a downward fling from the large detent settles at medium first; only from medium (or below) it dismisses.
+    const startedLarge = d.startH > mediumH + 20;
+    if (h < mediumH * 0.6 || (flingDown && !startedLarge)) { close(); return; }
+    let target;
+    if (flingUp && canLarge) target = 'large';
+    else if (flingDown && canMedium) target = 'medium';
+    else target = canLarge && (!canMedium || Math.abs(h - largeH) < Math.abs(h - mediumH)) ? 'large' : 'medium';
+    // Re-apply the height explicitly instead of clearing it: the framework only writes `style.height` when the detent
+    // changes, so clearing it and snapping back to the SAME detent used to leave the sheet with no height at all
+    // (auto = as tall as its content, header and grabber pushed off-screen, impossible to dismiss).
+    el.style.height = target === 'large' ? LARGE : MEDIUM;
     setDetent(target);
-  };
+  }
 
   const height = detent === 'large' ? LARGE : MEDIUM;
   const out = phase !== 'open';
@@ -117,7 +138,7 @@ export function Sheet({ onClose, detents = ['medium', 'large'], initial = 'mediu
         <div class=${'sheet-scrim ' + (phase === 'open' ? 'on' : '')} onClick=${close}></div>
         <div ref=${sheetRef} class=${'sheet ' + (form ? 'form-sheet' : '')} role="dialog" aria-modal="true"
           style=${{ height, transform: out ? 'translateY(100%)' : 'translateY(0)' }}
-          onPointerDown=${onPointerDown} onPointerMove=${onPointerMove} onPointerUp=${onPointerUp} onPointerCancel=${onPointerUp}>
+          onPointerDown=${onPointerDown}>
           <div class="grabber-zone"><div class="grabber"></div></div>
           <div class="sheet-body">${children}</div>
         </div>

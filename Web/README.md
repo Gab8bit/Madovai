@@ -53,14 +53,15 @@ php -m | grep -i -E "pdo_sqlite|curl|mbstring|zip|openssl"
 ### 1. Upload (dal tuo Mac, nella cartella del progetto)
 
 ```bash
-rsync -avz --delete --exclude='.git' --exclude='.claude' --exclude='tests' --exclude='data/*' --exclude='config.php' --exclude='.DS_Store' ./ UTENTE@HOST:/var/www/html/madovai/
+rsync -avz --delete --exclude='.git' --exclude='.claude' --exclude='tests' --exclude='data/*' --exclude='config.php' --exclude='project-info.json' --exclude='.DS_Store' ./ UTENTE@HOST:/var/www/html/madovai/
 ```
 
 - `rsync` copia solo ciò che è cambiato (veloce anche negli aggiornamenti successivi), via SSH.
 - `-a` conserva permessi e date, `-v` mostra i file, `-z` comprime durante il trasferimento.
 - `--delete` cancella sul server i file che hai tolto in locale, così le due cartelle restano identiche.
 - Le `--exclude` evitano di copiare: la cronologia git, i test, i dati e **`config.php`**, che esiste solo sul server
-  (con `--delete`, senza questa esclusione verrebbe cancellato a ogni aggiornamento).
+  (con `--delete`, senza questa esclusione verrebbe cancellato a ogni aggiornamento). Lo stesso vale per `project-info.json`:
+  se la pagina indice del tuo server lo usa per elencare i progetti, `--delete` lo cancellerebbe. Aggiungi un'`--exclude` per ogni altro file che esiste solo sul server.
 - Se l'utente SSH non può scrivere in `/var/www/html`, prima: `ssh UTENTE@HOST 'sudo mkdir -p /var/www/html/madovai && sudo chown UTENTE: /var/www/html/madovai'`
   (crea la cartella e ne rende proprietario il tuo utente).
 

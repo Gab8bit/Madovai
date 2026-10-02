@@ -4,7 +4,7 @@ import { api, loadLines } from '../api.js';
 import { useStore } from '../store.js';
 import { atacRealtime } from '../services.js';
 import { Sheet, useSheet } from '../ui/Sheet.js';
-import { Section, NavBar, InfoLabel, Loading, EmptyState } from '../ui/components.js';
+import { Section, NavBar, InfoLabel, Loading, EmptyState, InlineLoading } from '../ui/components.js';
 import { usePolling, useTick } from '../ui/hooks.js';
 import { PoleSheetModal, poleFromStop } from './PoleSheet.js';
 import { AtacStopSheetModal } from './AtacSheets.js';
@@ -60,7 +60,7 @@ export function LineeScreen({ active }) {
             </div></div>
             ${trains.length > 0 && html`<${Section} title="Treni">${trains.map(row)}<//>`}
             ${buses.length > 0 && html`<${Section} title="Bus">${buses.map(row)}<//>`}
-            ${!trains.length && !buses.length && html`<div class="list-card pad t-sub sec" style="padding:14px 16px">${error ?? (lines ? 'Nessuna linea trovata.' : 'Carico le linee…')}</div>`}
+            ${!trains.length && !buses.length && html`<div class="list-card pad t-sub sec" style="padding:14px 16px">${error ?? (lines ? 'Nessuna linea trovata.' : html`<${InlineLoading}>Carico le linee…<//>`)}</div>`}
           </div>
         </div>`}
   </div>`;
@@ -124,7 +124,7 @@ function AtacLineDetail({ route }) {
 
     <${Section} title=${`Fermate (${groups.length})`}>
       ${error ? html`<div class="pad t-foot sec">${error}</div>`
-        : !data ? html`<div class="pad t-foot sec">Carico le fermate…</div>`
+        : !data ? html`<div class="pad"><${InlineLoading}>Carico le fermate…<//></div>`
         : groups.length === 0 ? html`<div class="pad t-foot sec">Nessuna fermata trovata per questa linea nel riquadro considerato.</div>`
         : groups.map((g) => {
             const next = nextFor(g);
@@ -154,7 +154,7 @@ function CotralRailLineDetail({ route }) {
     <${Section}><div class="pad"><${InfoLabel} icon="info">Gli orari di ogni stazione seguono Cotral in tempo reale quando disponibile, altrimenti un orario programmato — tocca una stazione per vederli.<//></div><//>
     <${Section} title=${`Stazioni (${stops.length})`}>
       ${error ? html`<div class="pad t-foot sec">${error}</div>`
-        : !data ? html`<div class="pad t-foot sec">Carico le stazioni…</div>`
+        : !data ? html`<div class="pad"><${InlineLoading}>Carico le stazioni…<//></div>`
         : stops.map((s) => html`<button key=${s.id} class="list-row" onClick=${() => setPole(poleFromStop({ ...s, rail: route.rail }))}>
             <span class="t-sub grow">${s.name}</span><${Icon} name="chevron-right" size=16 class="chevron" />
           </button>`)}

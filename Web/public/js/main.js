@@ -48,6 +48,8 @@ function App() {
 }
 
 render(html`<${App} />`, document.getElementById('app'));
+const boot = document.getElementById('boot');
+if (boot) { boot.classList.add('done'); setTimeout(() => boot.remove(), 400); }
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* HTTP / unsupported: the app works without it */ }); });

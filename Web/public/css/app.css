@@ -309,3 +309,11 @@ button.list-row:active, .list-row.pressable:active { background: var(--fill); }
 
 /* Our own clear (x) button replaces the browser's native one in search fields. */
 input[type="search"]::-webkit-search-cancel-button, input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
+
+/* ───────── Boot splash + loading hints (slow connections) ───────── */
+#boot { position: fixed; inset: 0; z-index: 5000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: var(--bg); transition: opacity 0.35s; text-align: center; }
+#boot.done { opacity: 0; pointer-events: none; }
+#boot img { border-radius: 19px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18); }
+.spinner.small { width: 16px; height: 16px; border-width: 2px; }
+.loading-pill { align-self: center; display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; font-size: 13px; color: var(--text-2); }
+.inline-loading { display: flex; align-items: center; gap: 10px; color: var(--text-2); font-size: 15px; }

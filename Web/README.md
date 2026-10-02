@@ -26,75 +26,191 @@ e fa da proxy/cache verso i feed live; il browser scarica solo JSON leggeri.
 
 ## Requisiti del server
 
-- Apache 2.4 (`mod_rewrite` non serve), HTTPS (necessario per geolocalizzazione, PWA e notifiche push).
-- PHP **8.1+** con le estensioni: `pdo_sqlite`, `curl`, `openssl`, `mbstring`, `zip` (o il binario `unzip`). Nessun Composer.
-- Spazio disco: ~300 MB per `data/madovai.sqlite`; RAM per il build dei dati: ~512 MB (solo da CLI).
-- `cron` per aggiornare i dati e inviare i promemoria.
+- Apache 2.4 con `mod_rewrite`, `mod_headers`, `mod_deflate`, e **HTTPS** (necessario per geolocalizzazione, installazione come app e notifiche).
+- PHP **8.1+** con le estensioni `pdo_sqlite`, `curl`, `openssl`, `mbstring`, `zip`. Nessun Composer.
+- ~300 MB di disco per il database (`madovai.sqlite` ~106 MB, più la cache) e ~250 MB di RAM per il build dei dati (solo da riga di comando).
+- `cron`.
 
-## Installazione
+## Installazione (ogni comando spiegato)
 
-1. **Carica** il progetto sul server. Due modi:
+Nei comandi: `UTENTE@HOST` = utente SSH e indirizzo del server; `/var/www/html/madovai` = cartella del sito (cambiala se vuoi);
+`/var/www/madovai-data` = cartella dei dati; `www-data` = utente con cui gira Apache (su Debian/Ubuntu).
 
-   **A) Sottocartella di un sito esistente** (es. `/var/www/html/madovai` → `https://tuodominio/madovai/`).
-   Carica *tutto* il progetto: l'`.htaccess` nella radice serve ogni richiesta da `public/` e nasconde `src/`, `bin/`,
-   `docs/`, `tests/` e `config.php`. Richiede `mod_rewrite` e `AllowOverride All` per quella cartella:
+### 0. Estensioni PHP (una volta sola, sul server)
 
-   ```bash
-   sudo a2enmod rewrite headers deflate
-   # in /etc/apache2/apache2.conf (o nel vhost), per la cartella che contiene i progetti:
-   #   <Directory /var/www/html>  ->  AllowOverride All
-   sudo systemctl reload apache2
-   ```
+```bash
+sudo apt update && sudo apt install -y php-sqlite3 php-curl php-mbstring php-zip
+php -m | grep -i -E "pdo_sqlite|curl|mbstring|zip|openssl"
+```
 
-   **B) Dominio/vhost dedicato**: imposta il `DocumentRoot` su `public/`:
+- `php-sqlite3`: il database dei dati statici (linee, fermate, orari) è un file SQLite. Senza, il build si ferma con "could not find driver".
+- `php-curl`: scarica i feed di Cotral, ASTRAL e Roma Mobilità e manda le notifiche push.
+- `php-mbstring`: gestione corretta di accenti e maiuscole nelle ricerche.
+- `php-zip`: legge i feed GTFS, che sono archivi `.zip` (in alternativa serve il comando `unzip`).
+- `openssl` è già incluso in PHP: serve a cifrare le notifiche push.
+- `php -m` elenca i moduli attivi: devi vedere tutti e cinque.
 
-   ```apache
-   <VirtualHost *:443>
-       ServerName madovai.example.it
-       DocumentRoot /var/www/madovai/public
-       <Directory /var/www/madovai/public>
-           AllowOverride All
-           Require all granted
-       </Directory>
-       # SSL ...
-   </VirtualHost>
-   ```
+### 1. Upload (dal tuo Mac, nella cartella del progetto)
 
-   **Importante**: tieni la cartella dati **fuori dalla web root** (`data_dir` in `config.php`, vedi sotto). Contiene il
-   database e la chiave privata delle notifiche, e non deve mai dipendere da un `.htaccess` per restare privata.
+```bash
+rsync -avz --delete --exclude='.git' --exclude='.claude' --exclude='tests' --exclude='data/*' --exclude='config.php' --exclude='.DS_Store' ./ UTENTE@HOST:/var/www/html/madovai/
+```
 
-2. **Cartella dati e permessi** (l'utente del web server, es. `www-data`, deve poterci scrivere):
+- `rsync` copia solo ciò che è cambiato (veloce anche negli aggiornamenti successivi), via SSH.
+- `-a` conserva permessi e date, `-v` mostra i file, `-z` comprime durante il trasferimento.
+- `--delete` cancella sul server i file che hai tolto in locale, così le due cartelle restano identiche.
+- Le `--exclude` evitano di copiare: la cronologia git, i test, i dati e **`config.php`**, che esiste solo sul server
+  (con `--delete`, senza questa esclusione verrebbe cancellato a ogni aggiornamento).
+- Se l'utente SSH non può scrivere in `/var/www/html`, prima: `ssh UTENTE@HOST 'sudo mkdir -p /var/www/html/madovai && sudo chown UTENTE: /var/www/html/madovai'`
+  (crea la cartella e ne rende proprietario il tuo utente).
 
-   ```bash
-   sudo mkdir -p /var/www/madovai-data && sudo chown -R www-data:www-data /var/www/madovai-data
-   ```
+### 2. Apache (sul server)
 
-3. **Configurazione**: copia `config.sample.php` in `config.php` e imposta `data_dir` (la cartella del punto 2) e
-   `vapid_subject` (un `mailto:` tuo, richiesto dai servizi push).
+Due modi di pubblicare:
 
-4. **Genera i dati statici** (scarica i 3 feed GTFS ed elabora, ~2-3 minuti):
+**A) Sottocartella di un sito esistente** (`https://tuodominio/madovai/`). È il caso della cartella `/var/www/html/madovai`:
+l'`.htaccess` nella radice del progetto serve ogni richiesta da `public/` e nasconde `src/`, `bin/`, `docs/`, `tests/` e `config.php`.
 
-   ```bash
-   sudo -u www-data php bin/build-data.php
-   ```
+```bash
+sudo a2enmod rewrite headers deflate
+sudo sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
+sudo systemctl restart apache2
+```
 
-5. **Chiavi per le notifiche push** (una volta sola):
+- `a2enmod`: attiva i moduli Apache. `rewrite` esegue la regola che redirige verso `public/`; `headers` imposta le intestazioni di cache e
+  sicurezza; `deflate` comprime le risposte (JSON e JS più piccoli, importante su connessioni lente).
+- Il `sed` cambia `AllowOverride None` in `AllowOverride All` nel blocco `<Directory /var/www/>`: senza, Apache **ignora tutti i
+  file `.htaccess`** e il progetto non funzionerebbe (né sarebbero nascosti `src/` e simili). Nota: vale per tutti i progetti in
+  `/var/www`; se non vuoi, applicalo solo a `/var/www/html/madovai` in un file in `/etc/apache2/conf-available/`.
+- `restart` (non `reload`) serve perché hai appena attivato dei moduli nuovi.
 
-   ```bash
-   sudo -u www-data php bin/gen-vapid.php
-   ```
+**B) Dominio o vhost dedicato**: imposta il `DocumentRoot` su `public/`:
 
-6. **Cron** (`sudo -u www-data crontab -e`):
+```apache
+<VirtualHost *:443>
+    ServerName madovai.example.it
+    DocumentRoot /var/www/madovai/public
+    <Directory /var/www/madovai/public>
+        AllowOverride All
+        Require all granted
+    </Directory>
+    # SSL ...
+</VirtualHost>
+```
 
-   ```cron
-   # promemoria: ogni minuto
-   * * * * * php /var/www/html/madovai/bin/remind.php >> /var/www/madovai-data/remind.log 2>&1
-   # dati statici: ogni notte alle 04:30 (i feed cambiano raramente)
-   30 4 * * * php /var/www/html/madovai/bin/build-data.php >> /var/www/madovai-data/build.log 2>&1
-   ```
+### 3. Cartella dei dati (sul server)
 
-7. Apri `https://madovai.example.it/` dal telefono e usa **Condividi → Aggiungi alla schermata Home** (iPhone) o
-   "Installa app" (Android/Chrome).
+```bash
+sudo mkdir -p /var/www/madovai-data && sudo chown -R www-data:www-data /var/www/madovai-data
+```
+
+- Crea la cartella che conterrà il database, la cache, le sottoscrizioni delle notifiche e la **chiave privata** delle notifiche.
+- Sta **fuori** dalla web root apposta: così non è mai raggiungibile da internet, nemmeno se un `.htaccess` smettesse di funzionare.
+- `chown … www-data`: Apache e i comandi lanciati come `www-data` devono poterci scrivere.
+
+### 4. Configurazione (sul server)
+
+```bash
+cd /var/www/html/madovai && cp config.sample.php config.php
+sed -i "s#// 'data_dir' => .*#'data_dir' => '/var/www/madovai-data',#; s#mailto:admin@example.com#mailto:TUA@EMAIL#" config.php
+```
+
+- `config.php` è il file di configurazione locale (non è nel repository: è diverso per ogni server).
+- Il primo `sed` attiva `data_dir`, cioè dice all'app di usare la cartella del punto 3.
+- Il secondo imposta `vapid_subject`: un contatto (`mailto:…` oppure un URL `https://…`) che il tuo server comunica ai servizi push di Apple/Google/Mozilla
+  insieme a ogni notifica, per poterti contattare se qualcosa va storto. Apple rifiuta le notifiche se manca o non è valido. Non è un account e
+  non è visibile agli utenti.
+
+### 5. Dati statici (sul server)
+
+```bash
+sudo -u www-data php bin/build-data.php
+```
+
+- Scarica i tre feed GTFS (Cotral bus, Cotral treni, Atac/Roma TPL, ~75 MB) e li trasforma nel database SQLite. Dura 1-2 minuti.
+- `sudo -u www-data` lo esegue come l'utente di Apache, così i file creati hanno i permessi giusti.
+- È necessario perché i feed originali pesano centinaia di MB: il browser dei visitatori non può scaricarli, quindi il server li prepara una volta.
+
+### 6. Chiavi per le notifiche (sul server, una volta sola)
+
+```bash
+sudo -u www-data php bin/gen-vapid.php
+```
+
+- Genera la coppia di chiavi (standard VAPID) con cui il server firma e cifra le notifiche push. La parte privata resta in `/var/www/madovai-data/vapid.json`.
+- **Non rilanciarlo**: cambiare chiave invalida le notifiche già attivate sui telefoni degli utenti.
+
+### 7. Cron (sul server)
+
+```bash
+(sudo -u www-data crontab -l 2>/dev/null; echo '* * * * * php /var/www/html/madovai/bin/remind.php >> /var/www/madovai-data/remind.log 2>&1'; echo '30 4 * * * php /var/www/html/madovai/bin/build-data.php >> /var/www/madovai-data/build.log 2>&1') | sudo -u www-data crontab -
+```
+
+- Aggiunge due attività pianificate all'utente `www-data`, **senza cancellare quelle già presenti** (`crontab -l` legge le esistenti, `echo` ne aggiunge, `crontab -` reinstalla l'insieme).
+- `* * * * *` (ogni minuto) → `remind.php`: controlla i promemoria in scadenza, recupera il prossimo bus/treno e manda la notifica. Senza questa riga i promemoria non partono mai.
+- `30 4 * * *` (ogni notte alle 04:30) → `build-data.php`: ricostruisce il database con gli orari aggiornati. I feed cambiano di rado, quindi una volta al giorno basta.
+- `>> file.log 2>&1` salva l'output (e gli errori) in un file di log invece di perderlo: utile se qualcosa non funziona.
+
+### 8. Verifica (sul server)
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost/madovai/            # 200 = il sito risponde
+curl -s http://localhost/madovai/api/lines.php | head -c 150; echo             # JSON = backend e database ok
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost/madovai/config.php    # 404 = file protetto
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost/madovai/src/Config.php # 404 = codice non esposto
+curl -s "http://localhost/madovai/api/rail.php?stop=RL_ACILIA" | head -c 120; echo   # "source":"astral" = treni in tempo reale ok
+sudo -u www-data crontab -l                                                      # le due righe del punto 7
+sudo -u www-data php bin/remind.php --dry-run --verbose                          # prova a secco dei promemoria
+```
+
+### 9. Sul telefono
+
+Apri `https://tuodominio/madovai/`. Su iPhone: Condividi → **Aggiungi alla schermata Home**, poi apri l'app da lì (serve per le notifiche).
+Su Android/Chrome: menu → **Installa app**. Poi vai in Promemoria → Attiva → Prova.
+
+## Aggiornare l'app
+
+Dal Mac, rilancia lo stesso `rsync` del punto 1 (non tocca `config.php` né i dati). Se è cambiato qualcosa lato server non serve altro:
+Apache usa subito i nuovi file. Gli utenti con l'app installata ricevono la nuova versione alla successiva apertura (a volte alla seconda).
+Per forzare subito un aggiornamento dei dati: `sudo -u www-data php /var/www/html/madovai/bin/build-data.php`.
+
+## Disinstallazione dal server
+
+```bash
+# 1. Rimuove dal cron le righe di Madovai (lascia intatte le altre)
+sudo -u www-data crontab -l | grep -v madovai | sudo -u www-data crontab -
+
+# 2. Cancella il sito
+sudo rm -rf /var/www/html/madovai
+
+# 3. Cancella dati, cache, chiavi VAPID e sottoscrizioni push degli utenti
+sudo rm -rf /var/www/madovai-data
+```
+
+- Il punto 1 filtra via ogni riga che contiene `madovai` e reinstalla il resto. Se quelle erano le uniche righe, puoi usare `sudo -u www-data crontab -r` (cancella tutto il crontab di `www-data`).
+- Il punto 3 è **irreversibile**: elimina la chiave privata delle notifiche. I promemoria degli utenti smettono di arrivare (l'app sul telefono resta installata:
+  va tolta a mano dalla Home).
+
+Facoltativo, **solo se nessun altro progetto li usa** (altrimenti lasciali):
+
+```bash
+sudo apt remove -y php-sqlite3 php-zip                                    # estensioni PHP installate per Madovai
+sudo a2dismod rewrite                                                    # disattiva mod_rewrite
+sudo sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride All/AllowOverride None/' /etc/apache2/apache2.conf   # ripristina l'impostazione originale
+sudo systemctl restart apache2
+```
+
+## Dove sono salvati i dati degli utenti
+
+Non ci sono account né login. Ogni cosa vive nel browser del singolo dispositivo:
+
+| Dato | Dove | Cambiando dispositivo / cancellando i dati del sito |
+|---|---|---|
+| **Preferiti** | Solo nel browser (`localStorage`). Il server non li vede. | Si perdono: ogni dispositivo ha i suoi. |
+| **Promemoria** | Nel browser, più una copia sul server (`state.sqlite`) che serve a mandare le notifiche all'orario giusto. | Si perdono sul nuovo dispositivo. La copia sul server resta associata al vecchio browser. |
+| **Notifiche push** | Il browser crea una *sottoscrizione* anonima (un indirizzo fornito da Apple/Google/Mozilla); il server associa i promemoria a quella, non a una persona. | Ogni dispositivo va attivato a parte. |
+
+Il server non conosce nome, email o posizione degli utenti. La posizione GPS resta sul telefono e non viene mai inviata.
 
 ## Notifiche (Promemoria)
 

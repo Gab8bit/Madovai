@@ -19,6 +19,18 @@
 </head>
 <body>
   <div id="app"></div>
+  <!-- Shown by plain HTML+CSS until the JS app has mounted, so a slow connection never sees a blank page. -->
+  <div id="boot" role="status" aria-live="polite">
+    <img src="icons/icon-192.png" width="84" height="84" alt="">
+    <div class="spinner"></div>
+    <div id="boot-msg" class="t-foot sec">Caricamento…</div>
+  </div>
+  <script>
+    setTimeout(function () {
+      var b = document.getElementById('boot'), m = document.getElementById('boot-msg');
+      if (b && m) m.innerHTML = 'Il caricamento sta richiedendo più del previsto.<br><a href="" style="color:var(--tint)">Riprova</a>';
+    }, 12000);
+  </script>
   <noscript>Madovai richiede JavaScript.</noscript>
   <script src="vendor/leaflet.js"></script>
   <script type="module" src="js/main.js"></script>

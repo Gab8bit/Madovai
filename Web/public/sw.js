@@ -1,6 +1,6 @@
 // Madovai service worker: offline-capable app shell + Web Push for the "Promemoria" tab.
 // Bump VERSION when shipping new static files so installed PWAs pick them up.
-const VERSION = 'madovai-v1';
+const VERSION = 'madovai-v2';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'vendor/leaflet.js', 'vendor/leaflet.css', 'vendor/htm-preact.js',

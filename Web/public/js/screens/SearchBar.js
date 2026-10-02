@@ -10,6 +10,7 @@ export function SearchBar({ onSelectStop, onSelectRoute }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState({ stops: [], routes: [] });
   const [focused, setFocused] = useState(false);
+  const [busy, setBusy] = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -17,9 +18,10 @@ export function SearchBar({ onSelectStop, onSelectRoute }) {
     if (!q) { setResults({ stops: [], routes: [] }); return undefined; }
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
-      try { setResults(await api.search(q, { signal: ctrl.signal })); } catch (e) { if (e.name !== 'AbortError') setResults({ stops: [], routes: [] }); }
+      setBusy(true);
+      try { setResults(await api.search(q, { signal: ctrl.signal })); setBusy(false); } catch (e) { if (e.name !== 'AbortError') { setResults({ stops: [], routes: [] }); setBusy(false); } }
     }, 180);
-    return () => { clearTimeout(t); ctrl.abort(); };
+    return () => { clearTimeout(t); ctrl.abort(); setBusy(false); };
   }, [query]);
 
   const clear = () => { setQuery(''); setResults({ stops: [], routes: [] }); inputRef.current?.blur(); setFocused(false); };
@@ -36,6 +38,7 @@ export function SearchBar({ onSelectStop, onSelectRoute }) {
       <input ref=${inputRef} type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"
         placeholder="Cerca una fermata o una linea…" value=${query}
         onInput=${(e) => setQuery(e.target.value)} onFocus=${() => setFocused(true)} />
+      ${busy && html`<div class="spinner small" aria-label="Ricerca in corso"></div>`}
       ${query && html`<button aria-label="Cancella" onClick=${clear} style="display:flex"><${Icon} name="circle-x" size=19 fill=${false} style=${{ color: 'var(--text-2)' }} /></button>`}
     </div>
     ${focused && hasResults ? html`<div class="search-results glass-soft">

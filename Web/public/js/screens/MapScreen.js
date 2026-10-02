@@ -56,6 +56,8 @@ export function MapScreen({ active }) {
   const [focus, setFocus] = useState(null); // {routeId, kind, shapes, stops, route}
   const [dataError, setDataError] = useState(null);
   const [mapMessage, setMapMessage] = useState(null);
+  const [loadingData, setLoadingData] = useState(false);
+  const pending = useRef(0);
 
   const [selectedPole, setSelectedPole] = useState(null);
   const [selectedAtac, setSelectedAtac] = useState(null); // {stops, routeId}
@@ -96,6 +98,9 @@ export function MapScreen({ active }) {
     if (!viewport) return;
     if (viewport.zoom < MIN_DATA_ZOOM) { setPoles([]); setAtacStops([]); setViewportShapes([]); setDataError(null); return; }
     const b = pad(viewport.bounds);
+    // Non-blocking hint, shown only if the request is actually slow (no flicker on fast connections).
+    pending.current += 1;
+    const slow = setTimeout(() => { if (pending.current > 0) setLoadingData(true); }, 400);
     try {
       const [stopsRes, shapesRes] = await Promise.all([
         api.stops(b, { signal }),
@@ -109,6 +114,10 @@ export function MapScreen({ active }) {
     } catch (e) {
       if (e.name === 'AbortError') return;
       setDataError({ message: e.message, notReady: e.status === 503 });
+    } finally {
+      clearTimeout(slow);
+      pending.current -= 1;
+      if (pending.current <= 0) { pending.current = 0; setLoadingData(false); }
     }
   }, [viewport, linesVisible]);
 
@@ -213,6 +222,7 @@ export function MapScreen({ active }) {
 
     <div class="map-top">
       <${SearchBar} onSelectStop=${onSelectStop} onSelectRoute=${onSelectRoute} />
+      ${loadingData && !dataError && html`<div class="loading-pill glass-soft" role="status"><div class="spinner small"></div>Carico fermate e linee…</div>`}
       ${dataError && html`<${ErrorBanner} title=${dataError.notReady ? 'Dati non ancora disponibili' : 'Errore di connessione'}
         message=${dataError.notReady ? 'Il server sta ancora preparando i dati delle linee. Riprova tra qualche minuto.' : dataError.message}
         onRetry=${() => loadViewport()} />`}

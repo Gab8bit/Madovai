@@ -8,6 +8,11 @@ export function Loading({ message = 'Caricamento…' }) {
   return html`<div class="center-fill"><${Spinner} /><div class="t-foot sec" style="margin-top:10px">${message}</div></div>`;
 }
 
+/** Small spinner + text for list placeholders ("Carico le linee…"). */
+export function InlineLoading({ children }) {
+  return html`<div class="inline-loading"><div class="spinner small"></div><span>${children}</span></div>`;
+}
+
 /** EmptyStateView */
 export function EmptyState({ icon = 'tram-front', title, message, fill = true }) {
   return html`<div class=${fill ? 'center-fill' : ''}>

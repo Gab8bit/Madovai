@@ -1,0 +1,56 @@
+
+
+<transiti estratti="6">
+ <palina>
+  <codice>1021</codice>
+  <nomePalina>ARTENA, Campo Sportivo</nomePalina>
+  <latitudine>41.7465425153811</latitudine>
+  <longitudine>12.9150993838911</longitudine>
+  <localita>Artena (Comune)</localita>
+  <comune>Artena</comune>
+  <nomeStop>via G.Marconi</nomeStop>
+  <preferita>0</preferita>
+ </palina>
+ <corsa>
+  <idCorsa>11563486</idCorsa>
+  <percorso>CF952A</percorso>
+  <partenzaCorsa>Colleferro, p.zza Oberdan</partenzaCorsa>
+  <orarioPartenzaCorsa>37800</orarioPartenzaCorsa>
+  <arrivoCorsa>VELLETRI | Stazione FS (f2818)</arrivoCorsa>
+  <orarioArrivoCorsa>41580</orarioArrivoCorsa>
+  <soppressa>N</soppressa>
+  <numeroOrdine>17</numeroOrdine>
+  <tempoTransito>39383</tempoTransito>
+  <ritardo>358</ritardo>
+  <passato>0</passato>
+  <automezzo isAlive="1">6106</automezzo>
+  <testoFermata>-</testoFermata>
+  <dataModifica>39179</dataModifica>
+  <instradamento>Colleferro Fs-Colleferro Bar Marini-Valmontone Campo Sportivo-Valmontone-Artena-Macere-Lariano-Velletri Via  Lata</instradamento>
+  <banchina></banchina>
+  <monitorata>1</monitorata>
+  <accessibile>0</accessibile>
+  <inlinea>1</inlinea>
+ </corsa>
+ <corsa>
+  <idCorsa>11563625</idCorsa>
+  <percorso>CF73D</percorso>
+  <partenzaCorsa>Roma Anagnina, Anagnina Metro A</partenzaCorsa>
+  <orarioPartenzaCorsa>36000</orarioPartenzaCorsa>
+  <arrivoCorsa>COLLEFERRO | Stazione FS (f4937)</arrivoCorsa>
+  <orarioArrivoCorsa>41160</orarioArrivoCorsa>
+  <soppressa>N</soppressa>
+  <numeroOrdine>39</numeroOrdine>
+  <tempoTransito>40043</tempoTransito>
+  <ritardo>415</ritardo>
+  <passato>0</passato>
+  <automezzo isAlive="1">6681</automezzo>
+  <testoFermata>-</testoFermata>
+  <dataModifica>39282</dataModifica>
+  <instradamento>Tor Vergata V.Alimena-Roma Via Alimena-Tor Vergata Fac.Scienze-S.Cesareo-Labico-Valmontone-Artena-Colleferro Ospedale-Colleferro P.Za Oberdan</instradamento>
+  <banchina></banchina>
+  <monitorata>1</monitorata>
+  <accessibile>0</accessibile>
+  <inlinea>1</inlinea>
+ </corsa>
+</transiti>

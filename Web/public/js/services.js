@@ -51,7 +51,7 @@ export const atacRealtime = {
 
 // ───────────────────────── Cotral viewport vehicles ─────────────────────────
 // There is no "every active Cotral vehicle" endpoint: a vehicle only shows up after querying transits for a
-// specific pole, so this scans whichever poles are currently visible (server-side fan-out, see api/cotral-vehicles.php).
+// specific pole, so this scans whichever poles are currently visible (server-side fan-out, see the backend's cotral-vehicles endpoint).
 export const cotralVehicles = {
   store: createStore({ vehicles: [] }),
   _codes: [],

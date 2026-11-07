@@ -4,7 +4,7 @@ import { api } from '../api.js';
 
 /**
  * "Cerca una fermata o una linea…" — Linee section first, then Fermate, across Cotral and Atac/Roma TPL
- * (port of StopLineSearchBar + MapViewModel.search; the matching itself runs server-side, api/search.php).
+ * (port of StopLineSearchBar + MapViewModel.search; the matching itself runs server-side, backend /search).
  */
 export function SearchBar({ onSelectStop, onSelectRoute }) {
   const [query, setQuery] = useState('');

@@ -1,5 +1,5 @@
 import { createStore, storage } from './store.js';
-import { syncReminders, pushCapability, currentSubscription } from './push.js';
+import { syncReminders, pushCapability, usableSubscription } from './push.js';
 import { weekdaysLabel } from './models.js';
 
 // Reminders live in localStorage (the client is the source of truth) and are mirrored to the server, which wakes up
@@ -23,7 +23,7 @@ function scheduleSync() {
 export async function runSync() {
   const { reminders } = remindersStore.get();
   try {
-    const sub = await currentSubscription();
+    const sub = await usableSubscription();
     if (!sub) { remindersStore.set((s) => ({ ...s, sync: { status: pushCapability().needsInstall ? 'needs-install' : 'no-subscription', message: '' } })); return; }
     await syncReminders(reminders);
     remindersStore.set((s) => ({ ...s, sync: { status: 'ok', message: '' } }));

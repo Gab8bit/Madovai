@@ -1,3 +1,7 @@
+> **Documento storico.** Descrive il backend PHP di questo progetto (`src/`, `public/api/`, `bin/`), non più usato in produzione dalla v1.1.0 della PWA.
+> Il backend attuale è `~/Git-Projects/Madovai-Backend` (Node.js/Fastify, endpoint `/api/v1/…`): il suo contratto è nel suo `docs/API.md`, che rimanda a questo
+> file per il dettaglio di ogni endpoint (stessa logica, stessi JSON), salvo le differenze lì elencate (dispositivi push, `push/config`, `DELETE /devices`).
+
 # Madovai Web — contratto API e dati
 
 Porting web di **Madovai-iOS** (`~/Git-Projects/Madovai-iOS`, sorgenti Swift = riferimento di comportamento).

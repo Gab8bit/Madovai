@@ -13,7 +13,7 @@ import {
   transitMinutes, relativeLabel, minutesFromNowHHMM, upcoming, astralDelay,
 } from '../util.js';
 
-/** A static Cotral stop (from stops/search/line.php) as the UI's "pole" (port of PolesRepository.mapGtfsStopToPole). */
+/** A static Cotral stop (from the stops/search/line endpoints) as the UI's "pole" (port of PolesRepository.mapGtfsStopToPole). */
 export function poleFromStop(s) {
   return {
     code: s.id, name: s.name, stopName: s.name, locality: s.locality ?? extractLocality(s.name),

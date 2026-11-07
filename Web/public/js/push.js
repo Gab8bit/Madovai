@@ -25,8 +25,35 @@ export async function currentSubscription() {
   return reg.pushManager.getSubscription();
 }
 
+/** True when a browser subscription was created with this VAPID key (a push service only accepts messages signed with it). */
+function sameKey(sub, publicKey) {
+  const existing = sub.options?.applicationServerKey;
+  if (!existing) return true; // can't tell: assume it's fine
+  const a = new Uint8Array(existing), b = urlBase64ToUint8Array(publicKey);
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+async function serverPublicKey() {
+  let cfg;
+  try { cfg = await api.pushConfig(); } catch (e) { throw new PushError('server', e.message); }
+  const key = cfg?.webPush?.publicKey;
+  if (!key) throw new PushError('server', 'Le notifiche non sono configurate sul server.');
+  return key;
+}
+
 /**
- * Makes sure this browser has a push subscription (asking for permission if needed).
+ * The browser's subscription, but only if it can actually receive pushes from the current backend. After a backend
+ * change with a different VAPID key an old subscription is dead weight: reporting it as absent makes the UI offer
+ * "Attiva", which re-subscribes with the right key. If the server can't be asked, the subscription is trusted.
+ */
+export async function usableSubscription() {
+  const sub = await currentSubscription();
+  if (!sub) return null;
+  try { return sameKey(sub, await serverPublicKey()) ? sub : null; } catch { return sub; }
+}
+
+/**
+ * Makes sure this browser has a push subscription for the current backend (asking for permission if needed).
  * MUST be called straight from a user gesture (a click handler): the permission prompt is the first thing it does.
  */
 export async function ensureSubscription() {
@@ -42,13 +69,12 @@ export async function ensureSubscription() {
     const result = await Notification.requestPermission();
     if (result !== 'granted') throw new PushError('denied', 'Permesso per le notifiche non concesso.');
   }
+  const key = await serverPublicKey();
   const reg = await navigator.serviceWorker.ready;
   let sub = await reg.pushManager.getSubscription();
-  if (!sub) {
-    let key;
-    try { key = await api.pushKey(); } catch (e) { throw new PushError('server', e.status === 503 ? 'Le notifiche non sono ancora configurate sul server.' : e.message); }
-    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(key.publicKey) });
-  }
+  // A subscription made for another VAPID key (e.g. from a previous backend) would be refused by subscribe() below.
+  if (sub && !sameKey(sub, key)) { await sub.unsubscribe(); sub = null; }
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(key) });
   return sub;
 }
 

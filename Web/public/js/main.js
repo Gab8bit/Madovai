@@ -4,6 +4,7 @@ import { MapScreen } from './screens/MapScreen.js';
 import { LineeScreen } from './screens/LineeScreen.js';
 import { FavoritesScreen } from './screens/FavoritesScreen.js';
 import { RemindersScreen } from './screens/RemindersScreen.js';
+import { remindersStore, runSync } from './reminders.js';
 
 const TABS = [
   { id: 'map', label: 'Mappa', icon: 'map', fill: false },
@@ -50,6 +51,10 @@ function App() {
 render(html`<${App} />`, document.getElementById('app'));
 const boot = document.getElementById('boot');
 if (boot) { boot.classList.add('done'); setTimeout(() => boot.remove(), 400); }
+
+// Re-send the reminders once per launch (a no-op without a subscription): the server holds a copy only to know when to
+// notify, so this self-heals it after a backend change or a wiped database.
+setTimeout(() => { if (remindersStore.get().reminders.length) runSync(); }, 3000);
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => { /* HTTP / unsupported: the app works without it */ }); });

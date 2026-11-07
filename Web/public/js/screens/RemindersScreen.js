@@ -3,7 +3,7 @@ import { Icon } from '../icons.js';
 import { api } from '../api.js';
 import { useStore } from '../store.js';
 import { remindersStore, reminders, reminderTimeLabel, reminderDaysLabel, reminderIsTrain, runSync } from '../reminders.js';
-import { ensureSubscription, pushCapability, currentSubscription, sendTestPush, PushError } from '../push.js';
+import { ensureSubscription, pushCapability, usableSubscription, sendTestPush, PushError } from '../push.js';
 import { Sheet, useSheet } from '../ui/Sheet.js';
 import { Section, NavBar, EmptyState, InfoLabel } from '../ui/components.js';
 import { trainRoute, trainDirectionsForGtfs, WEEKDAYS_MONDAY_FIRST } from '../models.js';
@@ -86,7 +86,7 @@ function NotificationsCard({ hasReminders, active }) {
   const [note, setNote] = useState('');
   const cap = pushCapability();
 
-  const refresh = async () => { try { setSub(await currentSubscription()); } catch { setSub(null); } };
+  const refresh = async () => { try { setSub(await usableSubscription()); } catch { setSub(null); } };
   useEffect(() => { if (active) refresh(); }, [active, sync.status]);
 
   const enable = async () => {

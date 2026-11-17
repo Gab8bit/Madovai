@@ -1,88 +1,99 @@
 package dev.gab8bit.madovai
 
 import android.content.Context
-import dev.gab8bit.madovai.data.atac.AtacGtfsStore
-import dev.gab8bit.madovai.data.atac.AtacRealtimeService
-import dev.gab8bit.madovai.data.cotral.AstralTrainRepository
-import dev.gab8bit.madovai.data.cotral.PolesRepository
-import dev.gab8bit.madovai.data.cotral.TransitsRepository
-import dev.gab8bit.madovai.data.cotral.VehicleRepository
-import dev.gab8bit.madovai.data.gtfs.CotralGtfsStore
-import dev.gab8bit.madovai.net.AstralTrainClient
-import dev.gab8bit.madovai.net.CotralXmlClient
-import dev.gab8bit.madovai.service.CotralViewportVehicleService
+import android.util.Log
+import dev.gab8bit.madovai.api.MadovaiApi
+import dev.gab8bit.madovai.live.AtacFleetService
+import dev.gab8bit.madovai.live.ConnectivityMonitor
+import dev.gab8bit.madovai.live.CotralViewportVehicleService
+import dev.gab8bit.madovai.live.LinesStore
+import dev.gab8bit.madovai.live.VehicleTracker
+import dev.gab8bit.madovai.reminders.ReminderNotifier
+import dev.gab8bit.madovai.reminders.ReminderScheduler
+import dev.gab8bit.madovai.reminders.ReminderStore
 import dev.gab8bit.madovai.service.FavoritesStore
 import dev.gab8bit.madovai.service.LocationTracker
-import dev.gab8bit.madovai.service.VehicleTracker
 import dev.gab8bit.madovai.ui.MapViewModel
 import dev.gab8bit.madovai.ui.SheetHostState
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Manual dependency container, one per process. The Cotral and Atac pipelines are wired
- * completely separately here; they only meet in the UI's presentation models.
+ * Manual dependency container, one per process. Everything talks to the Madovai backend
+ * through the single [api]; live services poll only while the app is in the foreground.
  */
 class AppContainer(context: Context) {
-    /** Main-thread scope: services mutate their state here, like the iOS @MainActor classes. */
-    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    /**
+     * Main-thread scope: services mutate their state here, like the iOS @MainActor classes.
+     * Every loader catches its own errors; the handler is a last line of defence so an
+     * unexpected one is logged instead of taking the whole app down.
+     */
+    val appScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.Main.immediate + CoroutineExceptionHandler { _, e -> Log.w("Madovai", "Unhandled error", e) },
+    )
 
-    // Cotral
-    val cotralGtfsStore = CotralGtfsStore(context.filesDir)
-    private val cotralXmlClient = CotralXmlClient()
-    val polesRepository = PolesRepository(cotralGtfsStore)
-    val transitsRepository = TransitsRepository(cotralXmlClient)
-    val vehicleRepository = VehicleRepository(cotralXmlClient)
-    val astralTrainRepository = AstralTrainRepository(AstralTrainClient())
-    val vehicleTracker = VehicleTracker(vehicleRepository, appScope)
-    val cotralViewportVehicles = CotralViewportVehicleService(transitsRepository, vehicleRepository, appScope)
+    private val _isForeground = MutableStateFlow(false)
+    /** True between the activity's ON_START and ON_STOP: every poller waits on it. */
+    val isForeground: StateFlow<Boolean> = _isForeground.asStateFlow()
 
-    // Atac / Roma TPL
-    val atacGtfsStore = AtacGtfsStore(context.filesDir)
-    val atacRealtimeService = AtacRealtimeService(atacGtfsStore, appScope)
+    val api = MadovaiApi.create()
+    val connectivity = ConnectivityMonitor(context, api, appScope)
+    val linesStore = LinesStore(api)
 
-    // Shared
+    // Live
+    val atacFleet = AtacFleetService(api, appScope, isForeground, connectivity)
+    val cotralVehicles = CotralViewportVehicleService(api, appScope, isForeground)
+    val vehicleTracker = VehicleTracker(api, appScope, isForeground)
+
+    // Local state
     val favoritesStore = FavoritesStore(context, appScope)
     val locationTracker = LocationTracker(context)
+    val reminderScheduler = ReminderScheduler(context)
+    val reminderNotifier = ReminderNotifier(context)
+    val reminderStore = ReminderStore(context, appScope, reminderScheduler)
 
-    // Presentation state (process-scoped, see MapViewModel's doc)
-    val mapViewModel = MapViewModel(cotralGtfsStore, atacGtfsStore, polesRepository, cotralViewportVehicles, locationTracker, appScope)
+    // Presentation state (process-scoped: survives rotation and tab switches)
+    val mapViewModel = MapViewModel(api, linesStore, connectivity, cotralVehicles, locationTracker, appScope)
     val sheets = SheetHostState()
     /** Location permission is requested automatically at most once per launch. */
     var hasRequestedLocationPermission = false
 
-    private var loadingStarted = false
+    private var started = false
 
-    /** Both loads start independently (separate failure domains) and only once per process. */
-    fun startStaticDataLoading() {
-        if (loadingStarted) return
-        loadingStarted = true
-        appScope.launch { cotralGtfsStore.ensureLoaded() }
-        appScope.launch { atacGtfsStore.ensureLoaded() }
+    init {
+        connectivity.onReconnect {
+            atacFleet.refreshNow()
+            cotralVehicles.refreshNow()
+            mapViewModel.reload()
+        }
     }
 
-    fun retryCotral() {
-        appScope.launch { cotralGtfsStore.retry() }
-    }
-
-    fun retryAtac() {
-        appScope.launch { atacGtfsStore.retry() }
-    }
-
-    /** Foreground-only live polling (battery/data friendly). */
     fun onForeground() {
-        atacRealtimeService.startPolling()
-        cotralViewportVehicles.startPolling()
-        vehicleTracker.resume()
+        if (!started) {
+            started = true
+            connectivity.start()
+            atacFleet.start()
+            cotralVehicles.start()
+        }
+        _isForeground.value = true
         if (locationTracker.hasPermission()) locationTracker.startUpdating()
     }
 
     fun onBackground() {
-        atacRealtimeService.stopPolling()
-        cotralViewportVehicles.stopPolling()
-        vehicleTracker.pause()
+        _isForeground.value = false
         locationTracker.stopUpdating()
+    }
+
+    /** "Riprova" on the banners: probe the server and refresh everything now. */
+    fun retryAll() {
+        connectivity.checkServer()
+        atacFleet.refreshNow()
+        cotralVehicles.refreshNow()
+        mapViewModel.reload()
     }
 }

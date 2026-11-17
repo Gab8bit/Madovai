@@ -25,6 +25,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,6 +38,7 @@ import dev.gab8bit.madovai.ui.common.EmptyState
 import dev.gab8bit.madovai.ui.common.kindIcon
 import dev.gab8bit.madovai.ui.map.atacStationGroup
 import dev.gab8bit.madovai.ui.theme.TransitColors
+import kotlinx.coroutines.launch
 
 /**
  * "Preferiti": one unified list of Cotral poles and Atac stops. Each opens the exact same
@@ -46,6 +48,15 @@ import dev.gab8bit.madovai.ui.theme.TransitColors
 @Composable
 fun FavoritesScreen(container: AppContainer) {
     val favorites by container.favoritesStore.favorites.collectAsState()
+    val scope = rememberCoroutineScope()
+
+    fun open(item: FavoriteStop) {
+        when (item) {
+            is FavoriteStop.Cotral -> container.sheets.push(SheetRoute.CotralPole(item.pole))
+            // Resolved back to every platform sharing the stop's name, like a bare map-pin tap.
+            is FavoriteStop.Atac -> scope.launch { container.sheets.push(SheetRoute.AtacStation(container.atacStationGroup(item.stop), null)) }
+        }
+    }
 
     Scaffold(contentWindowInsets = WindowInsets(0), topBar = { TopAppBar(title = { Text("Preferiti") }) }) { padding ->
         if (favorites.isEmpty()) {
@@ -59,7 +70,7 @@ fun FavoritesScreen(container: AppContainer) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(favorites, key = { it.id }) { item ->
-                    ElevatedCard(onClick = { open(container, item) }, modifier = Modifier.fillMaxWidth()) {
+                    ElevatedCard(onClick = { open(item) }, modifier = Modifier.fillMaxWidth()) {
                         ListItem(
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                             leadingContent = {
@@ -80,13 +91,5 @@ fun FavoritesScreen(container: AppContainer) {
                 }
             }
         }
-    }
-}
-
-private fun open(container: AppContainer, item: FavoriteStop) {
-    when (item) {
-        is FavoriteStop.Cotral -> container.sheets.push(SheetRoute.CotralPole(item.pole))
-        // Resolves back to every platform sharing this stop's name, like a map-pin tap.
-        is FavoriteStop.Atac -> container.sheets.push(SheetRoute.AtacStation(container.atacStationGroup(item.stop), null))
     }
 }

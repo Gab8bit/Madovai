@@ -16,21 +16,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.gab8bit.madovai.model.AtacStop
 import dev.gab8bit.madovai.model.LatLon
-import dev.gab8bit.madovai.model.LineShape
+import dev.gab8bit.madovai.model.MapShape
 import dev.gab8bit.madovai.model.Pole
 import dev.gab8bit.madovai.model.TransitVehicle
 import dev.gab8bit.madovai.model.ViewportBounds
-import dev.gab8bit.madovai.ui.CameraTarget
+import dev.gab8bit.madovai.ui.CameraRequest
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
@@ -43,8 +44,8 @@ import org.osmdroid.views.overlay.Polyline
 data class FollowedVehicle(val coordinate: LatLon, val isTreno: Boolean, val lost: Boolean)
 
 /**
- * osmdroid map (no Google Maps SDK / API key needed). Draws the simulated "public
- * transport layer": muted OSM tiles + line shapes + stops + live vehicles on top.
+ * osmdroid map (no Google Maps SDK / API key / Play Services). Draws the "public transport
+ * layer" by hand: muted OSM tiles + line shapes + stops + live vehicles on top.
  */
 @Composable
 fun OsmMap(
@@ -55,13 +56,14 @@ fun OsmMap(
     poles: List<Pole>,
     favoritePoleIds: Set<String>,
     atacStops: List<AtacStop>,
-    shapes: List<LineShape>,
-    shapeColor: (LineShape) -> Color,
+    shapes: List<MapShape>,
+    shapeColor: (MapShape) -> Color,
     vehicles: List<TransitVehicle>,
+    vehicleBadges: Boolean,
     followed: FollowedVehicle?,
     userLocation: LatLon?,
-    pendingCenter: CameraTarget?,
-    onPendingCenterConsumed: (CameraTarget) -> Unit,
+    cameraRequest: CameraRequest?,
+    onCameraRequestConsumed: (CameraRequest) -> Unit,
     onCameraChanged: (ViewportBounds, LatLon, Double) -> Unit,
     onPoleClick: (Pole) -> Unit,
     onAtacStopClick: (AtacStop) -> Unit,
@@ -83,6 +85,7 @@ fun OsmMap(
             minZoomLevel = 7.0
             maxZoomLevel = 19.5
             isVerticalMapRepetitionEnabled = false
+            isHorizontalMapRepetitionEnabled = false
             controller.setZoom(initialZoom)
             controller.setCenter(GeoPoint(initialCenter.latitude, initialCenter.longitude))
         }
@@ -131,17 +134,24 @@ fun OsmMap(
         mapView.invalidate()
     }
 
-    LaunchedEffect(pendingCenter) {
-        val target = pendingCenter ?: return@LaunchedEffect
-        mapView.controller.animateTo(GeoPoint(target.center.latitude, target.center.longitude), target.zoom, 700L)
-        onPendingCenterConsumed(target)
+    LaunchedEffect(cameraRequest) {
+        val request = cameraRequest ?: return@LaunchedEffect
+        val apply = {
+            when (request) {
+                is CameraRequest.Center ->
+                    mapView.controller.animateTo(GeoPoint(request.center.latitude, request.center.longitude), request.zoom, 700L)
+                is CameraRequest.Fit -> fit(mapView, request.points, request.maxZoom)
+            }
+        }
+        if (mapView.width > 0 && mapView.height > 0) apply() else mapView.addOnFirstLayoutListener { _, _, _, _, _ -> apply() }
+        onCameraRequestConsumed(request)
     }
 
     SideEffect {
         sync.setShapes(shapes, shapeColor)
         sync.setAtacStops(atacStops) { stopClick(it) }
         sync.setPoles(poles, favoritePoleIds) { poleClick(it) }
-        sync.setVehicles(vehicles) { vehicleClick(it) }
+        sync.setVehicles(vehicles, vehicleBadges) { vehicleClick(it) }
         sync.setFollowed(followed)
         sync.setUser(userLocation)
         mapView.invalidate()
@@ -150,7 +160,21 @@ fun OsmMap(
     AndroidView(factory = { mapView }, modifier = modifier)
 }
 
-/** Muted tiles so the drawn lines/stops stand out (iOS used MapKit's `.muted` style); dark = inverted greys. */
+private fun fit(map: MapView, points: List<LatLon>, maxZoom: Double) {
+    if (points.isEmpty()) return
+    val minLat = points.minOf { it.latitude }
+    val maxLat = points.maxOf { it.latitude }
+    val minLon = points.minOf { it.longitude }
+    val maxLon = points.maxOf { it.longitude }
+    if (maxLat - minLat < 1e-4 && maxLon - minLon < 1e-4) {
+        map.controller.animateTo(GeoPoint(minLat, minLon), maxZoom, 700L)
+        return
+    }
+    val border = (48 * map.context.resources.displayMetrics.density).toInt()
+    runCatching { map.zoomToBoundingBox(BoundingBox(maxLat, maxLon, minLat, minLon), true, border, maxZoom, 700L) }
+}
+
+/** Muted tiles so the drawn lines/stops stand out (iOS uses MapKit's `.muted` style); dark = inverted greys. */
 private fun tileFilter(dark: Boolean): ColorMatrixColorFilter {
     val m = ColorMatrix()
     if (dark) {
@@ -160,7 +184,7 @@ private fun tileFilter(dark: Boolean): ColorMatrixColorFilter {
                 0f, -1f, 0f, 0f, 255f,
                 0f, 0f, -1f, 0f, 255f,
                 0f, 0f, 0f, 1f, 0f,
-            )
+            ),
         )
         val sat = ColorMatrix().apply { setSaturation(0.2f) }
         val dim = ColorMatrix().apply { setScale(0.85f, 0.87f, 0.92f, 1f) }
@@ -173,7 +197,7 @@ private fun tileFilter(dark: Boolean): ColorMatrixColorFilter {
                 0f, 0.92f, 0f, 0f, 16f,
                 0f, 0f, 0.92f, 0f, 18f,
                 0f, 0f, 0f, 1f, 0f,
-            )
+            ),
         )
         m.postConcat(lift)
     }
@@ -222,14 +246,16 @@ private class OverlaySync(private val map: MapView, private val icons: MarkerIco
         animator = null
     }
 
-    fun setShapes(shapes: List<LineShape>, color: (LineShape) -> Color) {
-        val ids = shapes.mapTo(HashSet()) { it.shapeId }
+    fun setShapes(shapes: List<MapShape>, color: (MapShape) -> Color) {
+        val keyOf = { s: MapShape -> "${s.routeId}|${s.id}" }
+        val ids = shapes.mapTo(HashSet(), keyOf)
         shapeLines.keys.filter { it !in ids }.forEach { id -> shapeLines.remove(id)?.let { shapeFolder.remove(it) } }
         val density = map.context.resources.displayMetrics.density
         for (shape in shapes) {
-            if (shapeLines.containsKey(shape.shapeId)) continue
+            val key = keyOf(shape)
+            if (shapeLines.containsKey(key)) continue
             val line = Polyline(map).apply {
-                setPoints(List(shape.size) { i -> GeoPoint(shape.lats[i], shape.lons[i]) })
+                setPoints(shape.points.map { GeoPoint(it.latitude, it.longitude) })
                 outlinePaint.color = color(shape).copy(alpha = 0.85f).toArgb()
                 outlinePaint.strokeWidth = 3f * density
                 outlinePaint.strokeCap = Paint.Cap.ROUND
@@ -237,7 +263,7 @@ private class OverlaySync(private val map: MapView, private val icons: MarkerIco
                 infoWindow = null
                 setOnClickListener { _, _, _ -> false }
             }
-            shapeLines[shape.shapeId] = line
+            shapeLines[key] = line
             shapeFolder.add(line)
         }
     }
@@ -284,7 +310,7 @@ private class OverlaySync(private val map: MapView, private val icons: MarkerIco
         }
     }
 
-    fun setVehicles(vehicles: List<TransitVehicle>, onClick: (TransitVehicle) -> Unit) {
+    fun setVehicles(vehicles: List<TransitVehicle>, badges: Boolean, onClick: (TransitVehicle) -> Unit) {
         vehicleClick = onClick
         val ids = vehicles.mapTo(HashSet()) { it.id }
         vehicleMarkers.keys.filter { it !in ids }.forEach { id ->
@@ -296,14 +322,14 @@ private class OverlaySync(private val map: MapView, private val icons: MarkerIco
             vehicleById[v.id] = v
             val existing = vehicleMarkers[v.id]
             if (existing != null) {
-                existing.icon = icons.vehicle(v)
+                existing.icon = icons.vehicle(v, badges)
                 val from = existing.position
                 val to = GeoPoint(v.coordinate.latitude, v.coordinate.longitude)
                 if (!LatLon(from.latitude, from.longitude).isApproximately(v.coordinate)) moves.add(Triple(existing, GeoPoint(from), to))
                 continue
             }
             val id = v.id
-            val m = marker(v.coordinate, icons.vehicle(v), v.routeLabel?.let { "Linea $it" } ?: v.transitOperator.label) {
+            val m = marker(v.coordinate, icons.vehicle(v, badges), v.routeLabel?.let { "Linea $it" } ?: v.transitOperator.label) {
                 vehicleById[id]?.let { x -> vehicleClick(x) }
             }
             vehicleMarkers[id] = m
@@ -312,7 +338,7 @@ private class OverlaySync(private val map: MapView, private val icons: MarkerIco
         animateMoves(moves)
     }
 
-    /** One shared animator eases every moved marker to its new position (~1s), like the iOS map. */
+    /** One shared animator eases every moved marker to its new position (~1 s), like the iOS/web maps. */
     private fun animateMoves(moves: List<Triple<Marker, GeoPoint, GeoPoint>>) {
         if (moves.isEmpty()) return
         animator?.cancel()
@@ -341,7 +367,6 @@ private class OverlaySync(private val map: MapView, private val icons: MarkerIco
             topFolder.add(it)
         }
         m.icon = icons.followedVehicle(followed.isTreno, followed.lost)
-        m.alpha = if (followed.lost) 0.65f else 1f
         m.title = if (followed.isTreno) "Treno in tempo reale" else "Bus in tempo reale"
         m.position = GeoPoint(followed.coordinate.latitude, followed.coordinate.longitude)
     }

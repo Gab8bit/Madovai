@@ -517,7 +517,7 @@
   <div class="wrap">
     <p class="eyebrow reveal">Cosa fa</p>
     <h2 class="reveal">Tutto quello che ti serve per prendere un mezzo</h2>
-    <p class="section-lead reveal">Madovai unisce due reti di trasporto che di solito vivono in due app diverse, e le mostra come se fossero una sola. Stessi dati e stesso comportamento dell'app iOS, riscritta da zero come app Android nativa.</p>
+    <p class="section-lead reveal">Madovai unisce due reti di trasporto che di solito vivono in due app diverse, e le mostra come se fossero una sola. Stessi dati e stesso comportamento dell'app iOS e della web app, in un'app Android nativa.</p>
     <div class="feature-grid">
       <div class="card reveal">
         <div class="icon blue">🗺️</div>
@@ -540,24 +540,24 @@
         <p>Metromare (Roma-Lido) e Roma-Viterbo, tratta urbana ed extraurbana: partenze e ritardi dal servizio orari di ASTRAL, con corse soppresse e bus sostitutivi segnalati.</p>
       </div>
       <div class="card reveal">
+        <div class="icon orange">🔔</div>
+        <h3>Promemoria</h3>
+        <p>Scegli fermata, giorni e orario: all'ora giusta il telefono controlla il prossimo passaggio e ti avvisa con una notifica — puntuale, in ritardo o soppresso. Niente account, niente servizi Google.</p>
+      </div>
+      <div class="card reveal">
+        <div class="icon teal">⚡</div>
+        <h3>Leggera e subito pronta</h3>
+        <p>Orari, fermate e posizioni arrivano già pronti dal server Madovai: il telefono non deve più scaricare ed elaborare centinaia di MB di orari. Si apre e funziona subito.</p>
+      </div>
+      <div class="card reveal">
         <div class="icon blue">🎨</div>
         <h3>Material You</h3>
-        <p>Su Android 12 e successivi l'app prende i colori dal tuo sfondo (colori dinamici), con tema chiaro e scuro automatici. Sulle versioni precedenti usa il blu di Madovai.</p>
+        <p>Barra con Mappa, Linee, Preferiti e Promemoria, schede Material 3 dal basso per fermate e mezzi, colori presi dal tuo sfondo da Android 12, tema chiaro e scuro automatici.</p>
       </div>
       <div class="card reveal">
-        <div class="icon teal">🌍</div>
-        <h3>Mappa OpenStreetMap</h3>
-        <p>La mappa usa OpenStreetMap tramite osmdroid: niente Google Maps, niente account Google, niente servizi Google Play necessari. Funziona anche su telefoni senza Play Store.</p>
-      </div>
-      <div class="card reveal">
-        <div class="icon orange">🪟</div>
-        <h3>Schede dal basso</h3>
-        <p>Tocca una fermata o un mezzo e si apre una scheda Material 3 dal basso con le prossime partenze: la tiri su per vedere tutto, la abbassi per tornare alla mappa.</p>
-      </div>
-      <div class="card reveal">
-        <div class="icon green">⭐</div>
-        <h3>Linee e preferiti</h3>
-        <p>Barra di navigazione con Mappa, Linee e Preferiti. Cerca una fermata o una linea per nome, salva quelle che usi ogni giorno e ritrovale con un tocco.</p>
+        <div class="icon green">🌍</div>
+        <h3>Niente servizi Google</h3>
+        <p>Mappa OpenStreetMap tramite osmdroid, notifiche dei promemoria generate dal telefono stesso: niente Google Maps, niente account Google, niente Play Services. Funziona anche senza Play Store.</p>
       </div>
     </div>
   </div>
@@ -567,7 +567,7 @@
   <div class="wrap">
     <p class="eyebrow reveal">Come si presenta</p>
     <h2 class="reveal">Semplice da guardare, semplice da usare</h2>
-    <p class="section-lead reveal">Nessun account da creare, nessuna schermata di login: si apre l'app e si vede subito la mappa. I dati si scaricano in sottofondo al primo avvio, intanto la mappa è già utilizzabile.</p>
+    <p class="section-lead reveal">Nessun account da creare, nessuna schermata di login: si apre l'app e si vede subito la mappa. Cerca una fermata o una linea per nome, salva quelle che usi ogni giorno tra i preferiti e ritrovale con un tocco.</p>
     <div class="showcase">
       <figure class="reveal">
         <div class="phone">
@@ -600,6 +600,7 @@
         <li>Richiede <strong>Android 8.0</strong> (API 26) o successivo</li>
         <li>Colori dinamici da <strong>Android 12</strong></li>
         <li>Nessun servizio Google necessario</li>
+        <li>Serve una connessione a Internet: i dati arrivano dal server Madovai</li>
       </ul>
       <ol class="steps">
         <li>
@@ -629,7 +630,7 @@
         <li>
           <div>
             <strong>Apri Madovai</strong>
-            <span>All'avvio l'app chiede la posizione (facoltativa, serve solo per centrare la mappa su di te). Se vuoi, ora puoi anche rimettere a "no" il permesso "Installa app sconosciute" del browser: l'app installata resta.</span>
+            <span>All'avvio l'app chiede la posizione (facoltativa, serve solo per centrare la mappa su di te); il permesso per le notifiche lo chiede solo quando crei il primo promemoria. Se vuoi, ora puoi anche rimettere a "no" il permesso "Installa app sconosciute" del browser: l'app installata resta.</span>
           </div>
         </li>
       </ol>
@@ -637,7 +638,7 @@
         <a class="btn btn-primary download-btn" href="https://github.com/Gab8bit/Madovai/releases?q=android&amp;expanded=true">⬇ Scarica l'APK di Madovai</a>
       </div>
       <p class="note">Perché non il Play Store? Pubblicarci richiede un account sviluppatore Google Play e la verifica dell'identità presso Google. Non è escluso in futuro — per ora l'APK diretto è la via più semplice.</p>
-      <p class="note">Aggiornamenti: quando esce una nuova versione, scarica il nuovo APK dalla <a href="https://github.com/Gab8bit/Madovai/releases?q=android&amp;expanded=true" style="color:var(--text-dim)">pagina delle release</a> e installalo sopra quello vecchio: preferiti e dati già scaricati restano.</p>
+      <p class="note">Aggiornamenti: quando esce una nuova versione, scarica il nuovo APK dalla <a href="https://github.com/Gab8bit/Madovai/releases?q=android&amp;expanded=true" style="color:var(--text-dim)">pagina delle release</a> e installalo sopra quello vecchio: preferiti e promemoria restano.</p>
     </div>
   </div>
 </section>
@@ -649,6 +650,7 @@
       <span><a href="https://github.com/Gab8bit/Madovai">Codice sorgente su GitHub ↗</a> · <a href="../ios/">Versione iOS ↗</a> · <a href="../">Web ↗</a></span>
     </div>
     <div class="credits">
+      I dati arrivano dal server Madovai, che li raccoglie da queste fonti e li aggiorna ogni pochi secondi.<br>
       Dati fermate e linee: feed pubblici GTFS di Cotral, e di Roma Servizi per la Mobilità (licenza CC-BY 3.0 Italia) per Atac/Roma TPL.<br>
       Posizioni in tempo reale: endpoint pubblici di Cotral, servizio orari di ASTRAL per i treni Cotral, e feed GTFS-Realtime di Roma Servizi per la Mobilità.<br>
       Mappa: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (ODbL), visualizzata con osmdroid.

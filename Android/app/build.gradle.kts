@@ -25,8 +25,8 @@ android {
         applicationId = "dev.gab8bit.madovai"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "2.0.0"
     }
 
     signingConfigs {
@@ -90,22 +90,19 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.osmdroid:osmdroid-android:6.1.20")
-    implementation("org.mobilitydata:gtfs-realtime-bindings:0.2.0")
 
-    // JVM tests run the real data layer against the live feeds (see LiveFeedsSmokeTest).
+    // JVM unit tests: API parsing against fixtures captured from the production backend,
+    // the HTTP client against a local MockWebServer, reminder scheduling/status logic.
+    // org.json is part of Android itself; on the plain JVM the reference artifact stands in for it.
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
-    testImplementation("net.sf.kxml:kxml2:2.3.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }
 
 tasks.withType<Test>().configureEach {
-    // The live smoke test is opt-in (network + ~300MB of GTFS): -PliveTests
-    onlyIf { project.hasProperty("liveTests") }
-    maxHeapSize = "3g"
     testLogging {
-        showStandardStreams = true
-        events("passed", "failed")
+        events("passed", "failed", "skipped")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
 }

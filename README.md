@@ -42,11 +42,10 @@ Un solo repository, una cartella per versione:
 Come sono collegate:
 
 ```
- Cotral (PIV.do, GTFS) ─┐
- ASTRAL (treni)        ─┼─►  Backend  ──►  iOS 2.x
- Roma Mobilità (GTFS,  ─┘   /api/v1   └─►  Web 1.1+
+ Cotral (PIV.do, GTFS) ─┐               ┌─►  iOS 2.x
+ ASTRAL (treni)        ─┼─►  Backend  ──┼─►  Android 2.x
+ Roma Mobilità (GTFS,  ─┘   /api/v1     └─►  Web 1.1+
    GTFS-Realtime)
-        └──────────────────────────────►  Android 1.x  (legge ancora le fonti direttamente)
 ```
 
 Ogni cartella ha il suo README con architettura, build e scelte di dettaglio. La storia git dei quattro progetti originali è stata conservata: `git log -- iOS/` mostra tutti i commit dell'app iOS dal primo.

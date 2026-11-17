@@ -25,14 +25,14 @@ import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -42,9 +42,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import dev.gab8bit.madovai.model.GtfsLoadingState
 import dev.gab8bit.madovai.model.TransitVehicleKind
 import dev.gab8bit.madovai.ui.theme.TransitColors
+import kotlinx.coroutines.delay
 import kotlin.math.abs
 
 fun kindIcon(kind: TransitVehicleKind): ImageVector = when (kind) {
@@ -54,15 +54,18 @@ fun kindIcon(kind: TransitVehicleKind): ImageVector = when (kind) {
     TransitVehicleKind.TRENO -> Icons.Filled.Train
 }
 
-/** Delay presentation: under a minute reads as on time, never as a delay. */
+/** Delay wording, identical thresholds to the web/iOS rows: under a minute reads as on time, never as a delay. */
 object DelayFormat {
-    fun secondsText(seconds: Int): String {
+    /** null when |seconds| < 60. */
+    fun secondsText(seconds: Int?): String? {
+        if (seconds == null || abs(seconds) < 60) return null
         val minutes = abs(seconds) / 60
         return if (seconds > 0) "in ritardo di $minutes min" else "in anticipo di $minutes min"
     }
 
     fun secondsColor(seconds: Int): Color = if (seconds > 0) TransitColors.Late else TransitColors.Early
 
+    /** ASTRAL delays are whole minutes. */
     fun minutesText(minutes: Int, capitalized: Boolean = false): String {
         val s = when {
             abs(minutes) < 1 -> "puntuale"
@@ -79,6 +82,25 @@ object DelayFormat {
     }
 }
 
+fun relativeMinutesLabel(minutes: Int?, zeroLabel: String): String? = when {
+    minutes == null -> null
+    minutes <= 0 -> zeroLabel
+    minutes == 1 -> "tra 1 min"
+    else -> "tra $minutes min"
+}
+
+/** A clock that ticks every 20 s so "tra N min" labels and "upcoming" filters stay fresh between polls. */
+@Composable
+fun rememberMinuteTicker(): Long {
+    val now by produceState(System.currentTimeMillis()) {
+        while (true) {
+            delay(20_000L)
+            value = System.currentTimeMillis()
+        }
+    }
+    return now
+}
+
 @Composable
 fun StatusDot(color: Color, pulsing: Boolean = false, size: Int = 8) {
     if (pulsing) {
@@ -92,7 +114,7 @@ fun StatusDot(color: Color, pulsing: Boolean = false, size: Int = 8) {
 }
 
 @Composable
-fun EmptyState(icon: ImageVector, title: String, message: String? = null, modifier: Modifier = Modifier) {
+fun EmptyState(icon: ImageVector, title: String, message: String?, modifier: Modifier = Modifier, action: (@Composable () -> Unit)? = null) {
     Column(
         modifier.fillMaxWidth().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -101,13 +123,9 @@ fun EmptyState(icon: ImageVector, title: String, message: String? = null, modifi
         Icon(icon, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
         if (message != null) {
-            Text(
-                message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
+            Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         }
+        action?.invoke()
     }
 }
 
@@ -123,78 +141,70 @@ fun LoadingState(message: String, modifier: Modifier = Modifier) {
     }
 }
 
-/** One row per GTFS store that isn't ready yet; the map stays usable meanwhile. */
-data class LoadingItem(val id: String, val label: String, val state: GtfsLoadingState, val progress: Double?, val retry: () -> Unit)
-
 @Composable
-fun DataLoadingBanner(items: List<LoadingItem>, modifier: Modifier = Modifier) {
+fun InlineLoading(message: String, modifier: Modifier = Modifier) {
+    Row(modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+        Spacer(Modifier.width(10.dp))
+        Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** A map banner card: icon, title, message, optional actions. Error tone uses errorContainer. */
+@Composable
+fun BannerCard(
+    icon: ImageVector,
+    title: String,
+    message: String?,
+    modifier: Modifier = Modifier,
+    error: Boolean = false,
+    iconTint: Color? = null,
+    actions: (@Composable () -> Unit)? = null,
+) {
+    val container = if (error) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainerHigh
+    val content = if (error) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        colors = CardDefaults.cardColors(containerColor = container, contentColor = content),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
     ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            items.forEach { item -> LoadingRow(item) }
-            // Phase-agnostic wording on purpose: parsing runs on every launch (cache reused),
-            // so saying "download" would make ordinary relaunches look like a fresh download.
-            Text(
-                "Percorsi, linee e altri dati potrebbero non essere ancora disponibili finché il caricamento non è completo.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-private fun LoadingRow(item: LoadingItem) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(item.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.weight(1f))
-            item.progress?.let {
-                Text("${(it * 100).toInt()}%", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        val state = item.state
-        if (state is GtfsLoadingState.Failed) {
-            Text(state.message, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-            FilledTonalButton(onClick = item.retry) { Text("Riprova") }
-        } else {
-            val p = item.progress
-            if (p != null) {
-                LinearProgressIndicator(progress = { p.toFloat() }, modifier = Modifier.fillMaxWidth())
-            } else {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-            Text(phaseLabel(state), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-private fun phaseLabel(state: GtfsLoadingState): String = when (state) {
-    GtfsLoadingState.Idle -> "In attesa…"
-    GtfsLoadingState.Downloading -> "Scaricamento…"
-    GtfsLoadingState.Extracting -> "Estrazione…"
-    GtfsLoadingState.Parsing -> "Elaborazione…"
-    else -> ""
-}
-
-@Composable
-fun ErrorBanner(message: String, onRetry: (() -> Unit)?, onDismiss: (() -> Unit)?, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-    ) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.CloudOff, null, tint = MaterialTheme.colorScheme.onErrorContainer)
+        Row(Modifier.padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = iconTint ?: content)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text("Errore di connessione", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onErrorContainer)
-                Text(message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
+                Text(title, style = MaterialTheme.typography.titleSmall)
+                if (!message.isNullOrBlank()) {
+                    Text(message, style = MaterialTheme.typography.bodySmall, color = if (error) content else MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
-            if (onDismiss != null) TextButton(onClick = onDismiss) { Text("Chiudi") }
-            if (onRetry != null) TextButton(onClick = onRetry) { Text("Riprova") }
+            actions?.invoke()
+        }
+    }
+}
+
+@Composable
+fun ErrorBanner(
+    message: String,
+    onRetry: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    title: String = "Errore di connessione",
+    icon: ImageVector = Icons.Outlined.CloudOff,
+) {
+    BannerCard(icon, title, message, modifier, error = true) {
+        if (onRetry != null) TextButton(onClick = onRetry) { Text("Riprova") }
+    }
+}
+
+/** A small floating pill ("Caricamento dati…", "Avvicina la mappa…"). */
+@Composable
+fun HintPill(text: String, modifier: Modifier = Modifier, spinner: Boolean = false) {
+    Surface(modifier, shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh, shadowElevation = 3.dp) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (spinner) {
+                CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(text, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -202,16 +212,23 @@ fun ErrorBanner(message: String, onRetry: (() -> Unit)?, onDismiss: (() -> Unit)
 /** A small filled pill label ("Soppressa", "Prossimo treno", …). */
 @Composable
 fun Pill(text: String, container: Color, content: Color = Color.White) {
-    Box(
-        Modifier.background(container, CircleShape).padding(horizontal = 8.dp, vertical = 3.dp),
-    ) {
+    Box(Modifier.background(container, CircleShape).padding(horizontal = 8.dp, vertical = 3.dp)) {
         Text(text, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = content)
     }
 }
 
-fun relativeMinutesLabel(minutes: Int?, zeroLabel: String): String? = when {
-    minutes == null -> null
-    minutes <= 0 -> zeroLabel
-    minutes == 1 -> "tra 1 min"
-    else -> "tra $minutes min"
+/** Section title in lists ("Treni", "Fermate (12)"). */
+@Composable
+fun SectionTitle(title: String, modifier: Modifier = Modifier) {
+    Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = modifier.padding(top = 12.dp, bottom = 4.dp, start = 4.dp))
+}
+
+/** Informational line with an icon (SwiftUI `Label(…, systemImage: "info.circle")`). */
+@Composable
+fun InfoLabel(icon: ImageVector, text: String, modifier: Modifier = Modifier, tint: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+    Row(modifier, verticalAlignment = Alignment.Top) {
+        Icon(icon, null, Modifier.size(18.dp), tint = tint)
+        Spacer(Modifier.width(8.dp))
+        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
 }

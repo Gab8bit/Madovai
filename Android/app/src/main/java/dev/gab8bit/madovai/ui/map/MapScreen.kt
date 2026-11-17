@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,22 +13,26 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FilterAlt
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.LayersClear
 import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.DirectionsBus
+import androidx.compose.material.icons.outlined.HourglassTop
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.outlined.LocationOff
+import androidx.compose.material.icons.outlined.Route
+import androidx.compose.material.icons.outlined.SearchOff
+import androidx.compose.material.icons.outlined.WifiOff
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -45,9 +50,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -56,158 +61,164 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gab8bit.madovai.AppContainer
+import dev.gab8bit.madovai.Config
+import dev.gab8bit.madovai.live.ConnectivityMonitor
 import dev.gab8bit.madovai.model.AtacStop
 import dev.gab8bit.madovai.model.AtacStopGroup
-import dev.gab8bit.madovai.model.CotralTrainRoute
-import dev.gab8bit.madovai.model.GtfsLoadingState
-import dev.gab8bit.madovai.model.LineShape
-import dev.gab8bit.madovai.model.NetworkState
-import dev.gab8bit.madovai.model.SearchRouteResult
-import dev.gab8bit.madovai.model.SearchStopResult
-import dev.gab8bit.madovai.model.TransitOperator
+import dev.gab8bit.madovai.model.MapShape
+import dev.gab8bit.madovai.model.RouteInfo
+import dev.gab8bit.madovai.model.SearchStop
 import dev.gab8bit.madovai.model.TransitVehicleKind
 import dev.gab8bit.madovai.model.VehicleTrackingState
-import dev.gab8bit.madovai.model.groupedStopsByName
 import dev.gab8bit.madovai.service.LocationTracker
+import dev.gab8bit.madovai.ui.LineFocus
 import dev.gab8bit.madovai.ui.MapViewModel
 import dev.gab8bit.madovai.ui.SheetRoute
-import dev.gab8bit.madovai.ui.common.DataLoadingBanner
+import dev.gab8bit.madovai.ui.common.BannerCard
 import dev.gab8bit.madovai.ui.common.ErrorBanner
-import dev.gab8bit.madovai.ui.common.LoadingItem
+import dev.gab8bit.madovai.ui.common.HintPill
 import dev.gab8bit.madovai.ui.common.kindIcon
 import dev.gab8bit.madovai.ui.theme.TransitColors
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 
-/** Resolves a tapped/searched Atac platform back to its whole station (every platform sharing the name). */
-fun AppContainer.atacStationGroup(stop: AtacStop): AtacStopGroup =
-    AtacStopGroup(stop.stopName.trim(), atacGtfsStore.stopsSharingName(stop))
+/**
+ * Resolves a tapped/searched Atac platform to its whole station (every platform sharing the
+ * name, `atac-stop`), labelled for [routeId] when the station was opened from a line.
+ */
+suspend fun AppContainer.atacStationGroup(stop: AtacStop, routeId: String? = null): AtacStopGroup {
+    val platforms = try {
+        api.atacStop(stop.stopId, routeId)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        emptyList()
+    }
+    val list = platforms.ifEmpty { listOf(stop) }
+    return AtacStopGroup(list.first().stopName.trim().ifEmpty { stop.stopName }, list.sortedBy { it.stopId })
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(container: AppContainer, onRequestLocationPermission: () -> Unit) {
     val vm = container.mapViewModel
-    val cotralState by container.cotralGtfsStore.state.collectAsState()
-    val cotralProgress by container.cotralGtfsStore.downloadProgress.collectAsState()
-    val atacState by container.atacGtfsStore.state.collectAsState()
-    val atacProgress by container.atacGtfsStore.downloadProgress.collectAsState()
+    val scope = rememberCoroutineScope()
 
+    val viewport by vm.viewport.collectAsState()
     val poles by vm.poles.collectAsState()
-    val mapState by vm.state.collectAsState()
-    val focusedRouteId by vm.focusedRouteId.collectAsState()
-    val atacVisibleStops by vm.atacVisibleStops.collectAsState()
-    val atacVisibleShapes by vm.atacVisibleShapes.collectAsState()
+    val routePoles by vm.routePoles.collectAsState()
+    val atacStops by vm.atacStops.collectAsState()
+    val viewportShapes by vm.viewportShapes.collectAsState()
     val linesVisible by vm.linesVisible.collectAsState()
-    val settledBounds by vm.settledBounds.collectAsState()
-    val pendingCenter by vm.pendingCenter.collectAsState()
+    val focus by vm.focus.collectAsState()
+    val isLoading by vm.isLoading.collectAsState()
+    val dataError by vm.dataError.collectAsState()
+    val notice by vm.notice.collectAsState()
+    val cameraRequest by vm.cameraRequest.collectAsState()
 
-    val atacVehicles by container.atacRealtimeService.vehicles.collectAsState()
-    val cotralVehicles by container.cotralViewportVehicles.vehicles.collectAsState()
+    val atacVehicles by container.atacFleet.vehicles.collectAsState()
+    val fleetError by container.atacFleet.error.collectAsState()
+    val fleetLoaded by container.atacFleet.hasLoadedOnce.collectAsState()
+    val cotralVehicles by container.cotralVehicles.vehicles.collectAsState()
     val favoriteIds by container.favoritesStore.favoriteIds.collectAsState()
+    val trackerCode by container.vehicleTracker.vehicleCode.collectAsState()
     val trackerCoordinate by container.vehicleTracker.coordinate.collectAsState()
     val trackerIsTreno by container.vehicleTracker.isTreno.collectAsState()
     val trackerState by container.vehicleTracker.state.collectAsState()
     val userLocation by container.locationTracker.currentLocation.collectAsState()
     val permission by container.locationTracker.permission.collectAsState()
+    val isOnline by container.connectivity.isOnline.collectAsState()
+    val serverState by container.connectivity.serverState.collectAsState()
 
-    val atacReady = atacState == GtfsLoadingState.Ready
-    val cotralReady = cotralState == GtfsLoadingState.Ready
-
-    // True when the focused line is an Atac/Roma TPL one (vs a Cotral `percorso` code —
-    // a different id namespace entirely).
-    val isAtacFocus = focusedRouteId?.let { container.atacGtfsStore.route(it) != null } ?: false
-
-    // While focused: only that line's own shape(s), across the whole line.
-    val focusedShapes: List<LineShape> = remember(focusedRouteId, atacVisibleShapes, atacReady, cotralReady) {
-        val routeId = focusedRouteId
-        when {
-            routeId == null -> atacVisibleShapes
-            container.atacGtfsStore.route(routeId) != null -> container.atacGtfsStore.shapes(routeId)
-            else -> {
-                // A focused Cotral vehicle's routeId is its `percorso` (ASTRAL code for a train):
-                // translate via route_short_name, never by string-building a GTFS id.
-                val train = CotralTrainRoute.fromRaw(routeId)
-                val rail = train?.let { t -> container.cotralGtfsStore.allRailRoutes().firstOrNull { it.routeShortName.uppercase() == t.gtfsRouteShortName } }
-                rail?.let { container.cotralGtfsStore.shapes(it.routeId) } ?: emptyList()
-            }
-        }
-    }
-    // While focused: only stops served by that line. One pin per physical station (grouped
-    // by name) — tapping resolves every platform again.
-    val focusedAtacStops: List<AtacStop> = remember(focusedRouteId, atacVisibleStops, atacReady) {
-        val routeId = focusedRouteId
-        val stops = when {
-            routeId == null -> atacVisibleStops
-            container.atacGtfsStore.route(routeId) != null -> container.atacGtfsStore.stopsForRoute(routeId)
-            else -> emptyList()
-        }
-        groupedStopsByName(stops).map { it.anchor }
-    }
-    // Merge point of the two pipelines: one combined vehicle list for presentation only.
+    val shownPoles = if (focus == null) routePoles ?: poles else emptyList()
+    val shownAtacStops = remember(focus, atacStops) { MapViewModel.shownAtacStops(focus, atacStops) }
+    val shownShapes = focus?.shapes ?: if (linesVisible) viewportShapes else emptyList()
     val allVehicles = remember(atacVehicles, cotralVehicles) { atacVehicles + cotralVehicles }
-    val focusedVehicles = remember(allVehicles, focusedRouteId, settledBounds) {
-        val routeId = focusedRouteId
-        val filtered = if (routeId == null) allVehicles else allVehicles.filter { it.routeId == routeId }
-        // Render only what's around the viewport (the full Atac fleet is 1000+ markers).
-        val bounds = settledBounds?.padded
-        if (bounds == null || routeId != null) filtered else filtered.filter { bounds.contains(it.coordinate) }
-    }
-    // While focused, hide Cotral poles entirely (no reliable "poles of this line" mapping).
-    val focusedPoles = if (focusedRouteId == null) poles else emptyList()
-
-    val favoritePoleIds = remember(favoriteIds) {
-        favoriteIds.filter { it.startsWith("cotral:") }.mapTo(HashSet()) { it.removePrefix("cotral:") }
-    }
-
-    val loadingItems = buildList {
-        if (!cotralReady) add(LoadingItem("cotral", "Dati Cotral", cotralState, cotralProgress) { container.retryCotral() })
-        if (!atacReady) add(LoadingItem("atac", "Dati Atac/Roma TPL", atacState, atacProgress) { container.retryAtac() })
-    }
-
-    val darkTheme = isSystemInDarkTheme()
-    var searchExpanded by rememberSaveable { mutableStateOf(false) }
+    val shownVehicles = remember(allVehicles, focus, viewport) { MapViewModel.visibleVehicles(allVehicles, focus?.routeId, viewport) }
+    val favoritePoleIds = remember(favoriteIds) { favoriteIds.filter { it.startsWith("cotral:") }.mapTo(HashSet()) { it.removePrefix("cotral:") } }
     val followed = trackerCoordinate?.let { FollowedVehicle(it, trackerIsTreno, trackerState is VehicleTrackingState.Lost) }
+    val zoom = viewport?.zoom ?: vm.savedZoom
+
+    var searchExpanded by rememberSaveable { mutableStateOf(false) }
+
+    fun openAtacStation(stop: AtacStop, routeId: String?) {
+        scope.launch { container.sheets.push(SheetRoute.AtacStation(container.atacStationGroup(stop, routeId), routeId)) }
+    }
 
     Box(Modifier.fillMaxSize()) {
         OsmMap(
             modifier = Modifier.fillMaxSize(),
             initialCenter = vm.savedCenter,
             initialZoom = vm.savedZoom,
-            darkTheme = darkTheme,
-            poles = focusedPoles,
+            darkTheme = isSystemInDarkTheme(),
+            poles = shownPoles,
             favoritePoleIds = favoritePoleIds,
-            atacStops = focusedAtacStops,
-            shapes = focusedShapes,
-            shapeColor = { shape -> shapeColor(container, shape) },
-            vehicles = focusedVehicles,
+            atacStops = shownAtacStops,
+            shapes = shownShapes,
+            shapeColor = ::shapeColor,
+            vehicles = shownVehicles,
+            vehicleBadges = zoom >= Config.VEHICLE_BADGE_ZOOM,
             followed = followed,
             userLocation = userLocation,
-            pendingCenter = pendingCenter,
-            onPendingCenterConsumed = vm::consumePendingCenter,
+            cameraRequest = cameraRequest,
+            onCameraRequestConsumed = vm::consumeCameraRequest,
             onCameraChanged = vm::onCameraChanged,
             onPoleClick = { container.sheets.push(SheetRoute.CotralPole(it)) },
-            onAtacStopClick = { stop ->
-                container.sheets.push(SheetRoute.AtacStation(container.atacStationGroup(stop), if (isAtacFocus) focusedRouteId else null))
-            },
+            onAtacStopClick = { stop -> openAtacStation(stop, focus?.takeIf { it.kind == LineFocus.Kind.ATAC }?.routeId) },
             onVehicleClick = { vehicle ->
                 container.sheets.push(SheetRoute.Vehicle(vehicle))
-                vm.setFocusedRoute(vehicle.routeId)
+                vm.focus(vehicle.routeId)
             },
         )
 
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            MapSearchBar(container, vm, searchExpanded) { searchExpanded = it }
+            MapSearchBar(
+                vm = vm,
+                expanded = searchExpanded,
+                setExpanded = { searchExpanded = it },
+                onStop = { stop ->
+                    vm.selectStop(stop)
+                    if (stop.isCotral) container.sheets.push(SheetRoute.CotralPole(stop.asPole())) else openAtacStation(stop.asAtacStop(), null)
+                },
+                onRoute = { route ->
+                    scope.launch {
+                        if (route.isCotral) {
+                            // Its stations (with tappable schedules) — otherwise a tap would land on whichever pole is nearest.
+                            if (vm.showCotralRoute(route)) container.sheets.push(SheetRoute.Line(route))
+                        } else {
+                            vm.showAtacRoute(route)
+                        }
+                    }
+                },
+            )
 
             if (!searchExpanded) Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (loadingItems.isNotEmpty()) DataLoadingBanner(loadingItems)
-                if (focusedRouteId != null) FocusedLineBanner(onReset = vm::resetFocus)
-                (mapState as? NetworkState.Error)?.let { err ->
-                    ErrorBanner(
-                        message = err.message,
-                        onRetry = { userLocation?.let { vm.centerOn(it, MapViewModel.USER_ZOOM) }; vm.dismissError() },
-                        onDismiss = vm::dismissError,
-                    )
+                StatusBanners(
+                    container = container,
+                    isOnline = isOnline,
+                    serverState = serverState,
+                    dataErrorMessage = dataError?.message,
+                    fleetErrorMessage = fleetError?.message?.takeIf { atacVehicles.isEmpty() || !fleetLoaded },
+                )
+                if (isLoading && dataError == null && isOnline) {
+                    HintPill("Caricamento dati…", Modifier.align(Alignment.CenterHorizontally), spinner = true)
+                }
+                focus?.let { FocusBanner(it, onReset = vm::clearFocus) }
+                if (trackerCode != null) TrackingMapBanner(container, trackerCode!!, trackerIsTreno, trackerState is VehicleTrackingState.Lost)
+                notice?.let { message ->
+                    BannerCard(Icons.Outlined.SearchOff, "Nessun risultato", message) {
+                        TextButton(onClick = vm::dismissNotice) { Text("Chiudi") }
+                    }
                 }
                 if (permission == LocationTracker.Permission.DENIED) PermissionDeniedBanner()
             }
+        }
+
+        if (!searchExpanded && focus == null && viewport?.showsData == false) {
+            HintPill(
+                if (zoom < Config.MIN_VEHICLE_ZOOM) "Avvicina la mappa per vedere mezzi e fermate" else "Avvicina la mappa per vedere le fermate",
+                Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
+            )
         }
 
         if (!searchExpanded) Column(
@@ -216,10 +227,14 @@ fun MapScreen(container: AppContainer, onRequestLocationPermission: () -> Unit) 
             horizontalAlignment = Alignment.End,
         ) {
             SmallFloatingActionButton(onClick = { container.sheets.push(SheetRoute.Info) }) {
-                Icon(Icons.Outlined.Info, contentDescription = "Info")
+                Icon(Icons.Outlined.Info, contentDescription = "Informazioni")
             }
-            SmallFloatingActionButton(onClick = vm::toggleLinesVisible) {
-                Icon(if (linesVisible) Icons.Filled.Layers else Icons.Filled.LayersClear, contentDescription = if (linesVisible) "Nascondi linee" else "Mostra linee")
+            SmallFloatingActionButton(onClick = vm::toggleLines) {
+                Icon(
+                    if (linesVisible) Icons.Filled.Route else Icons.Outlined.Route,
+                    contentDescription = if (linesVisible) "Nascondi le linee" else "Mostra le linee",
+                    tint = if (linesVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             FloatingActionButton(onClick = {
                 val loc = userLocation
@@ -231,12 +246,39 @@ fun MapScreen(container: AppContainer, onRequestLocationPermission: () -> Unit) 
     }
 }
 
-private fun shapeColor(container: AppContainer, shape: LineShape): Color {
-    val atacRoute = container.atacGtfsStore.route(shape.routeId)
-    atacRoute?.colorHex?.let { hex -> parseHex(hex)?.let { return it } }
-    // A focused Cotral rail line is drawn through the same pipeline → treno purple.
-    val kind = atacRoute?.kind ?: if (shape.routeId.startsWith("F:")) TransitVehicleKind.TRENO else TransitVehicleKind.BUS
-    return when (kind) {
+@Composable
+private fun StatusBanners(
+    container: AppContainer,
+    isOnline: Boolean,
+    serverState: ConnectivityMonitor.ServerState,
+    dataErrorMessage: String?,
+    fleetErrorMessage: String?,
+) {
+    when {
+        !isOnline -> BannerCard(
+            Icons.Outlined.WifiOff,
+            "Sei offline",
+            "Controlla la connessione: posizioni e orari non si aggiornano finché non torni online.",
+            error = true,
+        )
+        serverState == ConnectivityMonitor.ServerState.Preparing -> BannerCard(
+            Icons.Outlined.HourglassTop,
+            "Dati non ancora disponibili",
+            "Il server sta preparando i dati delle linee. Riprova tra qualche minuto.",
+            iconTint = TransitColors.CotralOrange,
+        ) { TextButton(onClick = container::retryAll) { Text("Riprova") } }
+        serverState is ConnectivityMonitor.ServerState.Unreachable ->
+            ErrorBanner(serverState.message, onRetry = container::retryAll, title = "Server non raggiungibile")
+        dataErrorMessage != null -> ErrorBanner(message = dataErrorMessage, onRetry = container::retryAll)
+        fleetErrorMessage != null -> BannerCard(Icons.Outlined.DirectionsBus, "Veicoli non disponibili", fleetErrorMessage, iconTint = TransitColors.CotralOrange) {
+            TextButton(onClick = container::retryAll) { Text("Riprova") }
+        }
+    }
+}
+
+private fun shapeColor(shape: MapShape): Color {
+    shape.colorHex?.let { hex -> parseHex(hex)?.let { return it } }
+    return when (shape.kind) {
         TransitVehicleKind.METRO -> TransitColors.Metro
         TransitVehicleKind.TRAM -> TransitColors.Tram
         TransitVehicleKind.TRENO -> TransitColors.Treno
@@ -253,33 +295,23 @@ private fun parseHex(hex: String): Color? {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MapSearchBar(container: AppContainer, vm: MapViewModel, expanded: Boolean, setExpanded: (Boolean) -> Unit) {
-    val query by vm.searchText.collectAsState()
-    val stopResults by vm.stopResults.collectAsState()
-    val routeResults by vm.routeResults.collectAsState()
-    fun onStop(result: SearchStopResult) {
-        setExpanded(false)
-        when (result) {
-            is SearchStopResult.Cotral -> container.sheets.push(SheetRoute.CotralPole(vm.jumpTo(result.stop)))
-            is SearchStopResult.Atac -> {
-                vm.centerOnAtacStop(result.stop)
-                container.sheets.push(SheetRoute.AtacStation(container.atacStationGroup(result.stop), null))
-            }
-        }
-    }
+private fun MapSearchBar(
+    vm: MapViewModel,
+    expanded: Boolean,
+    setExpanded: (Boolean) -> Unit,
+    onStop: (SearchStop) -> Unit,
+    onRoute: (RouteInfo) -> Unit,
+) {
+    val search = vm.search
+    val query by search.query.collectAsState()
+    val results by search.results.collectAsState()
+    val searching by search.isSearching.collectAsState()
+    val error by search.error.collectAsState()
 
-    fun onRoute(result: SearchRouteResult) {
+    fun pick(action: () -> Unit) {
         setExpanded(false)
-        when (result) {
-            is SearchRouteResult.Cotral -> {
-                vm.jumpTo(result.route)
-                vm.resetFocus()
-                // Open the line's own station list (with tappable schedules) — otherwise a tap
-                // would land on whichever pole happens to be nearest.
-                container.sheets.push(SheetRoute.CotralLine(result.route))
-            }
-            is SearchRouteResult.Atac -> if (vm.jumpTo(result.route)) vm.setFocusedRoute(result.route.routeId)
-        }
+        search.clear()
+        action()
     }
 
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
@@ -287,21 +319,19 @@ private fun MapSearchBar(container: AppContainer, vm: MapViewModel, expanded: Bo
             inputField = {
                 SearchBarDefaults.InputField(
                     query = query,
-                    onQueryChange = vm::onSearchTextChange,
+                    onQueryChange = search::onQueryChange,
                     onSearch = { },
                     expanded = expanded,
                     onExpandedChange = setExpanded,
                     placeholder = { Text("Cerca una fermata o una linea…") },
                     leadingIcon = {
-                        if (expanded) {
-                            IconButton(onClick = { setExpanded(false) }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") }
-                        } else {
-                            Icon(Icons.Filled.Search, null)
-                        }
+                        if (expanded) IconButton(onClick = { setExpanded(false) }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") }
+                        else Icon(Icons.Filled.Search, null)
                     },
                     trailingIcon = {
-                        if (query.isNotEmpty()) {
-                            IconButton(onClick = { vm.clearSearch() }) { Icon(Icons.Filled.Close, "Cancella") }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (searching) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                            if (query.isNotEmpty()) IconButton(onClick = search::clear) { Icon(Icons.Filled.Close, "Cancella") }
                         }
                     },
                 )
@@ -310,131 +340,104 @@ private fun MapSearchBar(container: AppContainer, vm: MapViewModel, expanded: Bo
             onExpandedChange = setExpanded,
             modifier = if (expanded) Modifier else Modifier.padding(horizontal = 16.dp),
         ) {
-            SearchResults(routeResults, stopResults, query, ::onRoute, ::onStop)
-        }
-    }
-}
-
-@Composable
-private fun SearchResults(
-    routes: List<SearchRouteResult>,
-    stops: List<SearchStopResult>,
-    query: String,
-    onRoute: (SearchRouteResult) -> Unit,
-    onStop: (SearchStopResult) -> Unit,
-) {
-    LazyColumn(Modifier.fillMaxSize()) {
-        if (routes.isNotEmpty()) {
-            item { SectionHeader("Linee") }
-            items(routes) { r ->
-                ListItem(
-                    headlineContent = { Text(r.displayName, fontWeight = FontWeight.SemiBold) },
-                    supportingContent = {
-                        Text(listOf(r.subtitle, r.longName).filter { it.isNotEmpty() }.joinToString(" · "), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    },
-                    leadingContent = { Icon(kindIcon(r.kind), null) },
-                    modifier = Modifier.clickable { onRoute(r) },
-                )
-            }
-        }
-        if (stops.isNotEmpty()) {
-            item { SectionHeader("Fermate") }
-            items(stops) { s ->
-                ListItem(
-                    headlineContent = { Text(s.name) },
-                    supportingContent = { Text(s.subtitle) },
-                    leadingContent = {
-                        Icon(
-                            when (s) {
-                                is SearchStopResult.Cotral -> kindIcon(if (s.isRail) TransitVehicleKind.TRENO else TransitVehicleKind.BUS)
-                                is SearchStopResult.Atac -> Icons.Filled.Place
+            LazyColumn(Modifier.fillMaxSize()) {
+                if (results.routes.isNotEmpty()) {
+                    item { ResultsHeader("Linee") }
+                    items(results.routes, key = { it.id }) { r ->
+                        ListItem(
+                            headlineContent = { Text(r.title, fontWeight = FontWeight.SemiBold) },
+                            supportingContent = {
+                                Text(listOfNotNull(r.operatorLabel, r.subtitleName).joinToString(" · "), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             },
-                            null,
+                            leadingContent = { Icon(kindIcon(r.iconKind), null) },
+                            modifier = Modifier.clickable { pick { onRoute(r) } },
                         )
-                    },
-                    modifier = Modifier.clickable { onStop(s) },
-                )
-            }
-        }
-        if (routes.isEmpty() && stops.isEmpty() && query.isNotBlank()) {
-            item {
-                Text(
-                    "Nessun risultato per \"$query\".",
-                    modifier = Modifier.padding(24.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                    }
+                }
+                if (results.stops.isNotEmpty()) {
+                    item { ResultsHeader("Fermate") }
+                    items(results.stops, key = { it.id }) { s ->
+                        ListItem(
+                            headlineContent = { Text(s.name) },
+                            supportingContent = { Text(s.subtitle) },
+                            leadingContent = {
+                                Icon(if (s.isCotral) kindIcon(if (s.rail) TransitVehicleKind.TRENO else TransitVehicleKind.BUS) else Icons.Filled.Place, null)
+                            },
+                            modifier = Modifier.clickable { pick { onStop(s) } },
+                        )
+                    }
+                }
+                val q = query.trim()
+                if (q.isNotEmpty() && !searching && results.routes.isEmpty() && results.stops.isEmpty()) {
+                    item {
+                        Text(
+                            error ?: "Nessun risultato per \"$q\".",
+                            modifier = Modifier.padding(24.dp),
+                            color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun SectionHeader(title: String) {
+private fun ResultsHeader(title: String) {
     Column {
-        Text(
-            title,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp),
-        )
+        Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp))
         HorizontalDivider()
     }
 }
 
 @Composable
-private fun FocusedLineBanner(onReset: () -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+private fun FocusBanner(focus: LineFocus, onReset: () -> Unit) {
+    BannerCard(
+        icon = Icons.Filled.Route,
+        title = "Mostro solo questa linea",
+        message = focus.title,
+        iconTint = MaterialTheme.colorScheme.primary,
     ) {
-        Row(Modifier.padding(start = 12.dp, end = 4.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.FilterAlt, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+        if (focus.kind == LineFocus.Kind.LOADING) {
+            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
             Spacer(Modifier.width(8.dp))
-            Text(
-                "Mostro solo questa linea",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(onClick = onReset) {
-                Icon(Icons.Filled.Close, null)
-                Spacer(Modifier.width(4.dp))
-                Text("Reset")
-            }
         }
+        TextButton(onClick = onReset) {
+            Icon(Icons.Filled.Close, null, Modifier.size(18.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Reset")
+        }
+    }
+}
+
+/** The followed Cotral vehicle ("Segui"), visible on the map even after its sheet is closed. */
+@Composable
+private fun TrackingMapBanner(container: AppContainer, code: String, isTreno: Boolean, lost: Boolean) {
+    BannerCard(
+        icon = if (lost) Icons.Outlined.LocationOff else Icons.Filled.MyLocation,
+        title = if (lost) "Tracking interrotto" else "Seguendo ${if (isTreno) "treno" else "bus"} $code",
+        message = if (lost) "Il veicolo $code non trasmette più la posizione" else "Posizione aggiornata ogni ${Config.VEHICLE_POSITION_POLL_INTERVAL_MS / 1000}s",
+        error = lost,
+        iconTint = if (lost) MaterialTheme.colorScheme.error else TransitColors.CotralOrange,
+    ) {
+        TextButton(onClick = { container.vehicleTracker.stopFollowing() }) { Text("Ferma") }
     }
 }
 
 @Composable
 private fun PermissionDeniedBanner() {
     val context = LocalContext.current
-    Card(elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.LocationOff, null, tint = MaterialTheme.colorScheme.error)
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text("Posizione non disponibile", style = MaterialTheme.typography.titleSmall)
-                Text(
-                    "Attiva la posizione per vedere le paline vicine, oppure cerca una fermata.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            TextButton(onClick = {
-                context.startActivity(
-                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                )
-            }) { Text("Impostazioni") }
-        }
+    BannerCard(
+        icon = Icons.Filled.LocationOff,
+        title = "Posizione non disponibile",
+        message = "Attiva la posizione per vedere le paline vicine, oppure cerca una località.",
+        iconTint = MaterialTheme.colorScheme.error,
+    ) {
+        TextButton(onClick = {
+            context.startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        }) { Text("Impostazioni") }
     }
-}
-
-/** Display label for a vehicle's line (Cotral trains show the real line name, not the ASTRAL code). */
-fun vehicleLineLabel(v: dev.gab8bit.madovai.model.TransitVehicle): String {
-    if (v.transitOperator == TransitOperator.COTRAL) {
-        CotralTrainRoute.fromRaw(v.routeId)?.let { return it.lineName }
-        return v.routeLabel ?: "—"
-    }
-    return dev.gab8bit.madovai.model.AtacMetroLine.fromShortName(v.routeLabel ?: "")?.friendlyName ?: (v.routeLabel ?: "—")
 }

@@ -21,13 +21,17 @@ import org.json.JSONObject
 private val Context.favoritesDataStore: DataStore<Preferences> by preferencesDataStore(name = "favorites")
 
 /**
- * Favorite stops, purely local (Jetpack DataStore). ONE persisted list for both
- * operators, with namespaced ids ("cotral:" / "atac:") so colliding numeric codes can
- * never merge two different favorites.
+ * Favorite stops, purely local (Jetpack DataStore). ONE persisted list for both operators,
+ * with namespaced ids ("cotral:" / "atac:") so colliding codes can never merge two favorites.
+ *
+ * Storage is exactly 1.0.0's: same DataStore file, same key, same JSON. The ids also match
+ * the backend's — 1.0.0 used the raw GTFS `stop_id` for both Cotral (`codicePalina`) and
+ * Atac (`stopId`), which is what every 2.0 endpoint expects — so favorites saved by 1.0.0
+ * keep working after the update without any migration step (see FavoritesCodecTest).
  */
 class FavoritesStore(context: Context, private val scope: CoroutineScope) {
     private val dataStore = context.applicationContext.favoritesDataStore
-    private val key = stringPreferencesKey("dev.gab8bit.madovai.favoritePoles")
+    private val key = stringPreferencesKey(STORAGE_KEY)
 
     private val _favorites = MutableStateFlow<List<FavoriteStop>>(emptyList())
     val favorites: StateFlow<List<FavoriteStop>> = _favorites.asStateFlow()
@@ -40,26 +44,26 @@ class FavoritesStore(context: Context, private val scope: CoroutineScope) {
     init {
         scope.launch {
             val json = dataStore.data.first()[key]
-            val decoded = json?.let { decode(it) } ?: emptyList()
+            val decoded = FavoritesCodec.decode(json)
             apply(decoded)
             loaded = true
             // Toggles that happened before the initial load finished.
             val pending = pendingToggles.toList()
             pendingToggles.clear()
             pending.forEach { toggle(it) }
-            if (decoded.size != (json?.let { rawCount(it) } ?: 0)) persist()
         }
     }
 
-    fun isFavoritePole(poleCode: String): Boolean = "cotral:$poleCode" in _favoriteIds.value
+    fun isFavoritePole(code: String?): Boolean = code != null && "cotral:$code" in _favoriteIds.value
     fun isFavoriteAtacStop(stopId: String): Boolean = "atac:$stopId" in _favoriteIds.value
 
     fun toggle(pole: Pole) {
-        if (pole.codicePalina == null) return
-        toggle(FavoriteStop.Cotral(pole))
+        if (pole.code == null) return
+        toggle(FavoriteStop.Cotral(pole.copy(codicePalina = pole.code)))
     }
 
-    fun toggle(stop: AtacStop) = toggle(FavoriteStop.Atac(stop))
+    /** A favorite Atac platform is stored without the per-line headsign (it depends on how the station was opened). */
+    fun toggle(stop: AtacStop) = toggle(FavoriteStop.Atac(stop.copy(headsign = null)))
 
     private fun toggle(item: FavoriteStop) {
         if (!loaded) {
@@ -77,22 +81,24 @@ class FavoritesStore(context: Context, private val scope: CoroutineScope) {
         persist()
     }
 
-    /** Keeps the first occurrence of each id (self-heals any duplicated entries). */
     private fun apply(items: List<FavoriteStop>) {
-        val seen = LinkedHashSet<String>()
-        val deduped = items.filter { seen.add(it.id) }
-        _favorites.value = deduped
-        _favoriteIds.value = seen
+        _favorites.value = items
+        _favoriteIds.value = items.mapTo(LinkedHashSet()) { it.id }
     }
 
     private fun persist() {
-        val snapshot = encode(_favorites.value)
+        val snapshot = FavoritesCodec.encode(_favorites.value)
         scope.launch { dataStore.edit { it[key] = snapshot } }
     }
 
-    // region JSON
+    companion object {
+        const val STORAGE_KEY = "dev.gab8bit.madovai.favoritePoles"
+    }
+}
 
-    private fun encode(items: List<FavoriteStop>): String {
+/** The persisted JSON (unchanged since 1.0.0). Pure, for tests. */
+object FavoritesCodec {
+    fun encode(items: List<FavoriteStop>): String {
         val array = JSONArray()
         for (item in items) {
             val o = JSONObject()
@@ -109,23 +115,29 @@ class FavoritesStore(context: Context, private val scope: CoroutineScope) {
         return array.toString()
     }
 
-    private fun rawCount(json: String): Int = runCatching { JSONArray(json).length() }.getOrDefault(0)
-
-    private fun decode(json: String): List<FavoriteStop> = runCatching {
-        val array = JSONArray(json)
-        (0 until array.length()).mapNotNull { i ->
-            val o = array.optJSONObject(i) ?: return@mapNotNull null
-            when (o.optString("type")) {
-                "cotral" -> o.optJSONObject("pole")?.let { FavoriteStop.Cotral(poleFromJson(it)) }
-                "atac" -> o.optJSONObject("stop")?.let { s ->
-                    val id = s.optString("stopId")
-                    if (id.isEmpty()) null
-                    else FavoriteStop.Atac(AtacStop(id, s.optString("stopName"), s.optDouble("lat", 0.0), s.optDouble("lon", 0.0)))
+    /** Tolerant: unknown/garbled entries are skipped, duplicates collapse to the first occurrence. */
+    fun decode(json: String?): List<FavoriteStop> {
+        if (json.isNullOrBlank()) return emptyList()
+        val items = runCatching {
+            val array = JSONArray(json)
+            (0 until array.length()).mapNotNull { i ->
+                val o = array.optJSONObject(i) ?: return@mapNotNull null
+                when (o.optString("type")) {
+                    "cotral" -> o.optJSONObject("pole")?.let(::poleFromJson)?.takeIf { it.code != null }?.let { FavoriteStop.Cotral(it) }
+                    "atac" -> o.optJSONObject("stop")?.let { s ->
+                        val id = str(s, "stopId")?.trim()
+                        if (id.isNullOrEmpty()) null
+                        else FavoriteStop.Atac(AtacStop(id, str(s, "stopName") ?: id, s.optDouble("lat", 0.0), s.optDouble("lon", 0.0)))
+                    }
+                    else -> null
                 }
-                else -> null
             }
-        }
-    }.getOrDefault(emptyList())
+        }.getOrDefault(emptyList())
+        val seen = HashSet<String>()
+        return items.filter { seen.add(it.id) }
+    }
+
+    private fun str(o: JSONObject, k: String): String? = if (o.isNull(k)) null else o.optString(k)
 
     private fun poleToJson(p: Pole): JSONObject = JSONObject().apply {
         p.codicePalina?.let { put("codicePalina", it) }
@@ -136,28 +148,21 @@ class FavoritesStore(context: Context, private val scope: CoroutineScope) {
         p.comune?.let { put("comune", it) }
         p.coordX?.let { put("coordX", it) }
         p.coordY?.let { put("coordY", it) }
-        p.destinazioni?.let { put("destinazioni", JSONArray(it)) }
-        p.isCotral?.let { put("isCotral", it) }
         put("isTreno", p.isTreno)
     }
 
     private fun poleFromJson(o: JSONObject): Pole {
-        fun str(k: String): String? = if (o.has(k) && !o.isNull(k)) o.optString(k) else null
-        fun dbl(k: String): Double? = if (o.has(k) && !o.isNull(k)) o.optDouble(k) else null
+        fun dbl(k: String): Double? = if (o.isNull(k)) null else o.optDouble(k).takeIf { !it.isNaN() }
         return Pole(
-            codicePalina = str("codicePalina"),
-            codiceStop = str("codiceStop"),
-            nomePalina = str("nomePalina"),
-            nomeStop = str("nomeStop"),
-            localita = str("localita"),
-            comune = str("comune"),
+            codicePalina = str(o, "codicePalina")?.trim()?.takeIf { it.isNotEmpty() },
+            codiceStop = str(o, "codiceStop")?.trim()?.takeIf { it.isNotEmpty() },
+            nomePalina = str(o, "nomePalina"),
+            nomeStop = str(o, "nomeStop"),
+            localita = str(o, "localita"),
+            comune = str(o, "comune"),
             coordX = dbl("coordX"),
             coordY = dbl("coordY"),
-            destinazioni = o.optJSONArray("destinazioni")?.let { a -> (0 until a.length()).map { a.optString(it) } },
-            isCotral = if (o.has("isCotral")) o.optInt("isCotral") else null,
             isTreno = o.optBoolean("isTreno", false),
         )
     }
-
-    // endregion
 }

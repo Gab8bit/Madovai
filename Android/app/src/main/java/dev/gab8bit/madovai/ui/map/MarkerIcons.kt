@@ -38,8 +38,10 @@ class MarkerIcons(private val context: Context) {
         circle(sizeDp = 13f, fill = TransitColors.AtacStop, borderDp = 1.8f, glyph = null, text = null)
     }
 
-    fun vehicle(v: TransitVehicle): Drawable {
+    /** Labelled badge (zoom ≥ 14) or a small dot (below), like the web's `.zoom-low`. */
+    fun vehicle(v: TransitVehicle, badge: Boolean): Drawable {
         val color = vehicleColor(v)
+        if (!badge) return cache.getOrPut("dot-${color.toArgb()}") { circle(12f, color, 1.5f, null, null) }
         val label = v.routeLabel?.takeIf { it.length <= 3 }
         val glyph = when (v.kind) {
             TransitVehicleKind.BUS -> Glyph.BUS
@@ -50,9 +52,11 @@ class MarkerIcons(private val context: Context) {
         val key = "veh-${color.toArgb()}-${label ?: ""}-${v.kind}"
         return cache.getOrPut(key) {
             // Short route numbers read better as text; longer labels (or none) use the glyph.
-            if (label != null) circle(28f, color, 1.6f, null, label)
-            else if (glyph == null) circle(28f, color, 1.6f, null, "M")
-            else circle(28f, color, 1.6f, glyph, null)
+            when {
+                label != null -> circle(28f, color, 1.6f, null, label)
+                glyph == null -> circle(28f, color, 1.6f, null, "M")
+                else -> circle(28f, color, 1.6f, glyph, null)
+            }
         }
     }
 
@@ -98,7 +102,6 @@ class MarkerIcons(private val context: Context) {
             paint.color = haloColor.toArgb()
             c.drawCircle(cx, cx, r + px(haloDp), paint)
         } else {
-            // soft shadow
             paint.color = 0x33000000
             c.drawCircle(cx, cx + px(0.8f), r, paint)
         }

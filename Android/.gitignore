@@ -13,7 +13,8 @@ captures/
 .externalNativeBuild/
 .cxx/
 
-# Build artifacts (build_apk.sh regenerates the debug APK)
+# Build artifacts (build_apk.sh copies the APK out of its container into dist/)
+dist/
 *.apk
 *.aab
 *.ap_

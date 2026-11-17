@@ -1,0 +1,101 @@
+name: CotralLive
+options:
+  bundleIdPrefix: dev.gab8bit
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+configs:
+  Debug: debug
+  Release: release
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_PREVIEWS: YES
+targets:
+  CotralLive:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: Sources
+      # NOTE: deliberately under `sources`, not `resources` — this xcodegen
+      # version (2.46.0) silently drops a target's `resources:` entries
+      # (reproduced with a from-scratch minimal project.yml, so it's an
+      # xcodegen bug/regression, not a config mistake here). Putting the
+      # folder under `sources` instead works: xcodegen still auto-detects
+      # the .xcassets inside as an asset catalog rather than compiling it
+      # as Swift source. Re-test with `resources:` if xcodegen is upgraded.
+      - path: Resources
+    info:
+      path: Sources/App/Info.plist
+      properties:
+        CFBundleDisplayName: Madovai
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIRequiresFullScreen: false
+        NSLocationWhenInUseUsageDescription: "Madovai usa la tua posizione per mostrarti le paline e le fermate più vicine sulla mappa."
+        # "Promemoria": one BGAppRefreshTask identifier checks the next
+        # departure and posts a local notification — see
+        # `ReminderScheduler`'s doc comment for why there's exactly one
+        # identifier regardless of how many reminders the user creates
+        # (BGTaskSchedulerPermittedIdentifiers is a fixed list, it can't
+        # grow at runtime).
+        UIBackgroundModes:
+          - fetch
+        BGTaskSchedulerPermittedIdentifiers:
+          - dev.gab8bit.madovai.reminderCheck
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.gab8bit.madovai
+        TARGETED_DEVICE_FAMILY: "1"
+        MARKETING_VERSION: "2.0.0"
+        CURRENT_PROJECT_VERSION: "6"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+  CotralLiveTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: Tests/CotralLiveTests
+    dependencies:
+      - target: CotralLive
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: dev.gab8bit.madovai.tests
+  CotralLiveUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: Tests/CotralLiveUITests
+    dependencies:
+      - target: CotralLive
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: dev.gab8bit.madovai.uitests
+        TEST_TARGET_NAME: CotralLive
+schemes:
+  CotralLive:
+    build:
+      targets:
+        CotralLive: all
+        CotralLiveTests: [test]
+        CotralLiveUITests: [test]
+    run:
+      config: Debug
+    archive:
+      config: Release
+    test:
+      config: Debug
+      targets:
+        - CotralLiveTests
+        - CotralLiveUITests

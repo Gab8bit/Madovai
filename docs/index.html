@@ -419,12 +419,13 @@
 
 
   /* ---------- hub: two phones in the hero ---------- */
-  .duo { position: relative; height: 520px; display: flex; justify-content: center; }
-  .duo .phone { width: 230px; position: absolute; transition: transform .25s ease; }
-  .duo .phone.p1 { transform: translateX(-70px) rotate(-6deg); z-index: 2; }
-  .duo .phone.p2 { transform: translateX(80px) translateY(36px) rotate(6deg); }
-  @media (max-width: 860px) { .duo { height: 450px; } .duo .phone { width: 200px; } }
-  @media (max-width: 420px) { .duo .phone.p1 { transform: translateX(-52px) rotate(-6deg); } .duo .phone.p2 { transform: translateX(56px) translateY(30px) rotate(6deg); } .duo .phone { width: 172px; } .duo { height: 390px; } }
+  /* translate/rotate (not transform): the shared .phone floatIn animation owns `transform`. */
+  .duo { position: relative; width: 100%; height: 540px; }
+  .duo .phone { width: 230px; position: absolute; top: 0; left: 50%; margin-left: -115px; }
+  .duo .phone.p1 { translate: -78px 0; rotate: -6deg; z-index: 2; }
+  .duo .phone.p2 { translate: 82px 36px; rotate: 6deg; }
+  @media (max-width: 860px) { .duo { height: 470px; } .duo .phone { width: 200px; margin-left: -100px; } }
+  @media (max-width: 420px) { .duo { height: 400px; } .duo .phone { width: 168px; margin-left: -84px; } .duo .phone.p1 { translate: -56px 0; } .duo .phone.p2 { translate: 58px 30px; } }
 
   /* ---------- hub: platform cards ---------- */
   .platforms { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }

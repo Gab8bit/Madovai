@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://gab8bit.github.io/Madovai/"><b>Sito e download</b></a> ·
   <a href="https://github.com/Gab8bit/Madovai/releases">Release</a> ·
-  <a href="https://app.gab8bit.net/madovai/">Web app</a>
+  <a href="https://madovai.gab8bit.net/">Web app</a>
 </p>
 
 ---
@@ -35,7 +35,7 @@ Un solo repository, una cartella per versione:
 |---|---|---|---|
 | [`iOS/`](iOS) | App per iPhone (iOS 16+) | SwiftUI, MapKit, xcodegen | IPA nelle [release](https://github.com/Gab8bit/Madovai/releases?q=ios&expanded=true), si installa con SideStore/AltStore — [guida](https://gab8bit.github.io/Madovai/ios/) |
 | [`Android/`](Android) | App per Android (8.0+) | Kotlin, Jetpack Compose, Material 3, osmdroid | APK nelle [release](https://github.com/Gab8bit/Madovai/releases?q=android&expanded=true) — [guida](https://gab8bit.github.io/Madovai/android/) |
-| [`Web/`](Web) | PWA da browser, installabile in Home | Preact + htm, Leaflet, nessuna build | [app.gab8bit.net/madovai](https://app.gab8bit.net/madovai/) |
+| [`Web/`](Web) | PWA da browser, installabile in Home | Preact + htm, Leaflet, nessuna build | [madovai.gab8bit.net](https://madovai.gab8bit.net/) |
 | [`Backend/`](Backend) | API che unisce e mette in cache i dati di tutte le fonti, più le notifiche dei promemoria | Node.js 24, TypeScript, Fastify, SQLite, Docker | `https://madovai.gab8bit.net/api/v1` — si fa girare con Docker, vedi [`Backend/README.md`](Backend/README.md) |
 | [`docs/`](docs) | Sito GitHub Pages: pagina principale, `ios/`, `android/` | HTML statico | [gab8bit.github.io/Madovai](https://gab8bit.github.io/Madovai/) |
 

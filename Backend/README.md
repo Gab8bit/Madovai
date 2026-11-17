@@ -27,7 +27,7 @@ cd ~/docker/madovai-backend
 docker compose up -d --build
 ```
 
-- `docker compose up -d --build`: costruisce l'immagine dal sorgente (`~/Git-Projects/Madovai-Backend`) e avvia il container in background.
+- `docker compose up -d --build`: costruisce l'immagine dal sorgente (la cartella `Backend/` del repo Madovai) e avvia il container in background.
 - Al primo avvio scarica ed elabora i dati GTFS (circa 20-30 secondi): nel frattempo gli endpoint statici rispondono 503, quelli live funzionano già.
 - API: <http://localhost:8083/api/v1/…> · documentazione: <http://localhost:8083/docs> · stato: <http://localhost:8083/health>
 - I dati (database, chiavi delle notifiche, promemoria) restano in `~/docker/madovai-backend/data`.

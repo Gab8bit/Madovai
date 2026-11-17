@@ -10,7 +10,7 @@ Versione web (PWA) di **Madovai** — bus, tram, metro e treni di Roma e del Laz
 ## Come è fatto
 
 Da **v1.1.0** questa app è **solo frontend**: file statici (Preact + htm, Leaflet, nessuna build, nessuna CDN) che parlano con il
-**backend Madovai** (progetto separato: `~/Git-Projects/Madovai-Backend`, Node.js in Docker).
+**backend Madovai** (cartella [`Backend/`](../Backend) di questo repo, Node.js in Docker).
 
 ```
  Browser (questa PWA, servita da Apache) ──fetch──►  https://madovai.gab8bit.net/api/v1/…  (backend)

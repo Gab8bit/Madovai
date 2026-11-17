@@ -9,7 +9,7 @@
 # (meglio ancora una chiave: vedi docs/DEPLOY.md).
 set -euo pipefail
 
-: "${DEPLOY_HOST:?Imposta DEPLOY_HOST, es. DEPLOY_HOST=gabriele@192.168.10.20}"
+: "${DEPLOY_HOST:?Imposta DEPLOY_HOST, es. DEPLOY_HOST=utente@192.168.1.50}"
 DEPLOY_DIR="${DEPLOY_DIR:-/opt/madovai-backend}"
 PLATFORM="${PLATFORM:-linux/amd64}"
 cd "$(dirname "$0")/.."

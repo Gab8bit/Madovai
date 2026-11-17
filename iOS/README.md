@@ -2,13 +2,13 @@
 
 Client SwiftUI (iOS 16+) per bus/treni Cotral (extraurbano Lazio) **e** bus/tram/metro Atac + Roma TPL (urbano Roma), su un'unica mappa. Nome dell'app: **Madovai** ("ma dove vai?"), bundle id `dev.gab8bit.madovai`; il progetto mantiene il nome storico `CotralLive.xcodeproj` (solo nome app, icona e bundle id sono cambiati, per non rompere riferimenti interni).
 
-> **Altre versioni.** Port Android nativo (Kotlin + Jetpack Compose): [github.com/Gab8bit/Madovai-Android](https://github.com/Gab8bit/Madovai-Android) · pagina di download su [gab8bit.github.io/Madovai-Android](https://gab8bit.github.io/Madovai-Android/).
+> **Parte del progetto [Madovai](../README.md).** Le altre versioni sono nello stesso repo: [Android](../Android) (Kotlin + Jetpack Compose), [Web](../Web) (PWA) e il [Backend](../Backend) (usato da iOS e Web). Pagina di download iOS: [gab8bit.github.io/Madovai/ios](https://gab8bit.github.io/Madovai/ios/).
 
 ## Architettura (dalla 2.0)
 
 Fino alla 1.3 l'app faceva da "server" per se stessa: scaricava i GTFS di Cotral e di Roma (centinaia di MB, parsati al primo avvio), decodificava i feed GTFS-Realtime in protobuf, parlava XML con l'endpoint interno di Cotral e interrogava ASTRAL per i treni.
 
-Dalla **2.0** tutto questo lo fa il **backend Madovai** (`https://madovai.gab8bit.net/api/v1`, progetto Madovai-Backend, documentato nel suo `docs/API.md`). L'app è un client JSON leggero:
+Dalla **2.0** tutto questo lo fa il **backend Madovai** (`https://madovai.gab8bit.net/api/v1`, cartella [`Backend/`](../Backend) di questo repo, documentato in [`Backend/docs/API.md`](../Backend/docs/API.md)). L'app è un client JSON leggero:
 
 - `Sources/API/` — `APIClient` (HTTP, timeout, cache secondo `Cache-Control`, errori del server già in italiano), `MadovaiAPI` (un metodo per endpoint, mappa le risposte sui modelli dell'app), `APIModels` (forme JSON).
 - `Sources/Live/` — servizi che fanno polling solo con l'app in primo piano: flotta Atac/Roma TPL, veicoli Cotral vicino alle paline visibili, veicolo "seguito", stato della connessione e del server (`/health`).

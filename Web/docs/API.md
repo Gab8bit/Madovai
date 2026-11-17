@@ -1,10 +1,10 @@
 > **Documento storico.** Descrive il backend PHP di questo progetto (`src/`, `public/api/`, `bin/`), non più usato in produzione dalla v1.1.0 della PWA.
-> Il backend attuale è `~/Git-Projects/Madovai-Backend` (Node.js/Fastify, endpoint `/api/v1/…`): il suo contratto è nel suo `docs/API.md`, che rimanda a questo
+> Il backend attuale è [`Backend/`](../../Backend) (Node.js/Fastify, endpoint `/api/v1/…`): il suo contratto è in [`Backend/docs/API.md`](../../Backend/docs/API.md), che rimanda a questo
 > file per il dettaglio di ogni endpoint (stessa logica, stessi JSON), salvo le differenze lì elencate (dispositivi push, `push/config`, `DELETE /devices`).
 
 # Madovai Web — contratto API e dati
 
-Porting web di **Madovai-iOS** (`~/Git-Projects/Madovai-iOS`, sorgenti Swift = riferimento di comportamento).
+Porting web di **Madovai iOS** ([`iOS/`](../../iOS) in questo repo, sorgenti Swift = riferimento di comportamento).
 Stesse funzioni, stessa UI. Questo documento è il contratto tra backend PHP e frontend JS.
 
 ## Architettura
@@ -110,7 +110,7 @@ Sul web non esiste `BGAppRefreshTask`: l'equivalente è **Web Push + cron sul se
 | `GET api/push-key.php` | `{"publicKey":"<base64url, 65 byte P-256 non compresso>"}`; 503 se il push non è configurato (`php bin/gen-vapid.php`). |
 | `POST api/reminders.php` | Body `{"subscription":{"endpoint","keys":{"p256dh","auth"}},"reminders":[Reminder…]}` → **sostituisce** tutti i promemoria di quella sottoscrizione (il client è la fonte di verità). `{"ok":true,"count":n}`. Con `?action=unsubscribe` (body `{"subscription":{"endpoint"}}`) cancella sottoscrizione e promemoria. Validazione rigida (endpoint https su porta 443 e host DNS pubblico (no IP/localhost), ≤ 600 caratteri, `p256dh` = 65 byte su curva P-256, `auth` = 16 byte, id `[A-Za-z0-9-]{1,64}` univoci, stopName ≤ 120, hour 0–23, minute 0–59, weekdays ⊂ 1..7 (deduplicati), max 30 promemoria, source valido); altrimenti 400. 503 se il server ha già 5000 sottoscrizioni. Un promemoria con id e orario/giorni/sorgente invariati **conserva** lo stato (già eseguito oggi / tentativi); uno nuovo o modificato riparte da zero e, se l'orario di oggi è già trascorso, non scatta retroattivamente. |
 | `POST api/push-test.php` | Body `{"subscription":{…}}` → invia subito (sincrono) una notifica di prova "Notifiche attive". Risposta 200 `{"ok":true,"status":201}`; se il push service rifiuta `{"ok":false,"status":N,"error":"…"}`; se la sottoscrizione è scaduta (404/410) `{"ok":false,"gone":true,…}` e viene cancellata (il client deve ri-sottoscriversi). 429 `{"error","retryAfter"}` + header `Retry-After` se < 30 s dal test precedente della stessa sottoscrizione. |
-| `php bin/remind.php` | Da cron **ogni minuto** (`* * * * * php /percorso/Madovai-Web/bin/remind.php >> /percorso/Madovai-Web/data/remind.log 2>&1`). Esegue i promemoria dovuti (lock esclusivo `data/remind.lock`). Opzioni: `--now="YYYY-MM-DD HH:MM"` (orologio finto, ora di Roma), `--dry-run` (stampa senza inviare né scrivere stato), `--verbose`. `vapid_subject` (config.php / `MADOVAI_VAPID_SUBJECT`, default `mailto:admin@example.com`) identifica il server verso i push service: impostarlo. |
+| `php bin/remind.php` | Da cron **ogni minuto** (`* * * * * php /percorso/Madovai/Web/bin/remind.php >> /percorso/Madovai/Web/data/remind.log 2>&1`). Esegue i promemoria dovuti (lock esclusivo `data/remind.lock`). Opzioni: `--now="YYYY-MM-DD HH:MM"` (orologio finto, ora di Roma), `--dry-run` (stampa senza inviare né scrivere stato), `--verbose`. `vapid_subject` (config.php / `MADOVAI_VAPID_SUBJECT`, default `mailto:admin@example.com`) identifica il server verso i push service: impostarlo. |
 | `php bin/gen-vapid.php` | Genera `data/vapid.json` (chiavi P-256) una volta sola. |
 
 `Reminder` (client ↔ server; weekdays come `Calendar` Apple: **1 = domenica … 7 = sabato**):

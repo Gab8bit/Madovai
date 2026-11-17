@@ -4,9 +4,9 @@ Client Android nativo (Kotlin + Jetpack Compose, Material 3 / Material You, Andr
 
 È il port Android dell'app iOS: stesse due pipeline di dati, stesso comportamento, stessa logica di fallback — riscritta da zero in Kotlin, non un wrapper. Come su iOS, l'app parla **direttamente** con l'endpoint interno di Cotral (lo stesso che [`ChromuSx/cotral`](https://github.com/ChromuSx/cotral) proxava da un server Node), con il servizio orari di ASTRAL per i treni e con i feed pubblici GTFS/GTFS-Realtime — non c'è nessun backend da self-hostare.
 
-Pagina di presentazione e download: **https://gab8bit.github.io/Madovai-Android/** · APK nelle [Release](https://github.com/Gab8bit/Madovai-Android/releases).
+Pagina di presentazione e download: **https://gab8bit.github.io/Madovai/android/** · APK nelle [Release](https://github.com/Gab8bit/Madovai/releases) (tag `android-v…`). Fa parte del progetto [Madovai](../README.md).
 
-> **Versione iOS.** Il progetto gemello per iPhone (SwiftUI) è su [github.com/Gab8bit/Madovai-iOS](https://github.com/Gab8bit/Madovai-iOS), con la sua pagina su [gab8bit.github.io/Madovai-iOS](https://gab8bit.github.io/Madovai-iOS/). L'app iOS è il riferimento: questa versione Android ne rispecchia i modelli e la logica (molti file citano il loro equivalente Swift nei commenti). Le descrizioni dettagliate delle stranezze dei dati Cotral/Atac (campi XML, copertura dei veicoli, metro senza tempo reale, ecc.) sono nel README iOS e valgono identiche anche qui.
+> **Versione iOS.** Il progetto gemello per iPhone (SwiftUI) è nella cartella [`iOS/`](../iOS) di questo stesso repo, con la sua pagina su [gab8bit.github.io/Madovai/ios](https://gab8bit.github.io/Madovai/ios/). L'app iOS è il riferimento: questa versione Android ne rispecchia i modelli e la logica (molti file citano il loro equivalente Swift nei commenti). Le descrizioni dettagliate delle stranezze dei dati Cotral/Atac (campi XML, copertura dei veicoli, metro senza tempo reale, ecc.) sono nel README iOS e valgono identiche anche qui.
 
 ## Come funziona
 

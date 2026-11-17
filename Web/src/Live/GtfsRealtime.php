@@ -6,7 +6,7 @@ namespace Madovai\Live;
 /**
  * GTFS-Realtime (proto2, `transit_realtime`) decoding, specialised for what
  * the app needs from Roma Mobilità's two feeds. Field numbers are taken from
- * ~/Git-Projects/Madovai-iOS/proto/gtfs-realtime.proto:
+ * gtfs-realtime.proto (https://github.com/google/transit/blob/master/gtfs-realtime/proto/gtfs-realtime.proto):
  *
  *  FeedMessage       header=1 entity=2          FeedHeader      timestamp=3
  *  FeedEntity        id=1 trip_update=3 vehicle=4

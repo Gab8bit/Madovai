@@ -2,9 +2,9 @@
 
 Backend Node.js/TypeScript (Fastify) per Madovai: dati statici GTFS, dati live (Cotral, ASTRAL, Atac/Roma TPL) e
 promemoria con notifiche push per **web (Web Push)**, **Android (FCM)** e **iOS (APNs, pronto ma spento senza account Apple Developer)**.
-È la riscrittura del backend PHP di `~/Git-Projects/Madovai-Web` (`src/`, `public/api/`, `bin/`), che resta il
+È la riscrittura del backend PHP di [`Web/`](../../Web) (`src/`, `public/api/`, `bin/`), che resta il
 **riferimento di comportamento**: stessa logica, stessi JSON. Il contratto dettagliato di ogni endpoint è in
-`~/Git-Projects/Madovai-Web/docs/API.md` (vale tutto, salvo le differenze sotto).
+[`Web/docs/API.md`](../../Web/docs/API.md) (vale tutto, salvo le differenze sotto).
 
 Documentazione interattiva (OpenAPI 3.1, generata dagli schema delle rotte): `GET /docs`.
 
@@ -94,7 +94,7 @@ retry dopo 2 minuti fino a 15 volte, poi rinuncia fino al giorno successivo, cha
 
 ## Dati statici
 
-- Schema di `DATA_DIR/madovai.sqlite`: quello del PHP (`Madovai-Web/docs/API.md` sezione "Schema" + `src/Gtfs/Builder.php`) più,
+- Schema di `DATA_DIR/madovai.sqlite`: quello del PHP (`Web/docs/API.md` sezione "Schema" + `src/Gtfs/Builder.php`) più,
   dalla **versione 2** dello schema (`meta.schema_version = '2'`), l'ordine di percorso precalcolato dal builder:
   ```
   atac_route_stops(route_id, pos INT, stop_id, PRIMARY KEY(route_id,pos)) WITHOUT ROWID             -- tutte le fermate della linea in ordine

@@ -34,7 +34,7 @@ ssh-copy-id UTENTE@IP-VM
 ## 2. Primo deploy (dal Mac)
 
 ```bash
-cd ~/Git-Projects/Madovai-Backend
+cd Madovai/Backend   # dalla cartella in cui hai clonato il repo
 DEPLOY_HOST=UTENTE@IP-VM scripts/deploy.sh
 ```
 

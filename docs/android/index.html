@@ -3,8 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Madovai — ma dove vai?</title>
-<meta name="description" content="Madovai: Cotral e Atac/Roma TPL su un'unica mappa, in tempo reale. Un'app iOS gratuita per chi si muove nel Lazio.">
+<title>Madovai per Android — ma dove vai?</title>
+<meta name="description" content="Madovai per Android: Cotral e Atac/Roma TPL su un'unica mappa, in tempo reale. Port nativo Android (Kotlin, Jetpack Compose, Material You) dell'app iOS, gratuito e open source.">
+<meta name="theme-color" content="#05070c">
+<link rel="icon" type="image/svg+xml" href="assets/app-icon.svg">
+<link rel="apple-touch-icon" href="assets/app-icon.svg">
 <style>
   :root {
     --bg: #05070c;
@@ -30,7 +33,7 @@
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: Roboto, "Google Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     line-height: 1.5;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
@@ -98,6 +101,7 @@
     top: 0;
     z-index: 10;
     backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
     background: rgba(5,7,12,0.6);
     border-bottom: 1px solid rgba(255,255,255,0.06);
   }
@@ -116,6 +120,17 @@
     text-decoration: none;
   }
   .brand img { width: 30px; height: 30px; border-radius: 8px; display: block; }
+  .brand .tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--green);
+    background: rgba(62,207,142,0.12);
+    border: 1px solid rgba(62,207,142,0.25);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
   .nav-links {
     display: flex;
     gap: 28px;
@@ -216,19 +231,21 @@
     opacity: 0;
     animation: fadeUp .7s ease-out .4s forwards;
   }
+  .hint a { color: var(--text-dim); }
 
-  /* ---------- phone mockup ---------- */
+  /* ---------- phone mockup (Android: thin bezel + punch-hole camera) ---------- */
   .phone-stage {
     display: flex;
     justify-content: center;
     perspective: 1200px;
   }
   .phone {
+    position: relative;
     width: 250px;
-    aspect-ratio: 9 / 19.5;
-    border-radius: 38px;
+    aspect-ratio: 9 / 20;
+    border-radius: 34px;
     background: #000;
-    padding: 10px;
+    padding: 8px;
     box-shadow: 0 30px 70px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08);
     transition: transform .15s ease-out;
     transform-style: preserve-3d;
@@ -241,25 +258,26 @@
   }
   .phone .screen {
     width: 100%; height: 100%;
-    border-radius: 28px;
+    border-radius: 27px;
     overflow: hidden;
     background: #05070c;
   }
   .phone .screen img {
     width: 100%; height: 100%;
     object-fit: cover;
+    object-position: top;
     display: block;
   }
-  .phone .notch {
+  .phone .camera {
     position: absolute;
-    top: 10px; left: 50%;
+    top: 17px; left: 50%;
     transform: translateX(-50%);
-    width: 38%; height: 20px;
+    width: 11px; height: 11px;
     background: #000;
-    border-radius: 0 0 14px 14px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.05);
     z-index: 2;
   }
-  .phone { position: relative; }
 
   /* ---------- sections ---------- */
   section { padding: 90px 0; }
@@ -294,11 +312,6 @@
   }
 
   /* ---------- feature grid ---------- */
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 18px;
-  }
   .feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
   @media (max-width: 900px) {
     .feature-grid { grid-template-columns: repeat(2, 1fr); }
@@ -346,6 +359,7 @@
     margin-top: 16px;
     color: var(--text-dim);
     font-size: 14px;
+    max-width: 220px;
   }
   figure { margin: 0; }
 
@@ -357,6 +371,24 @@
     padding: 44px;
   }
   @media (max-width: 700px) { .install-panel { padding: 28px 20px; } }
+
+  .req {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 22px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .req li {
+    font-size: 13px;
+    color: var(--text-dim);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 999px;
+    padding: 5px 12px;
+  }
+  .req li strong { color: var(--text); font-weight: 600; }
 
   .steps {
     list-style: none;
@@ -390,6 +422,7 @@
   .steps li div strong { display: block; margin-bottom: 3px; }
   .steps li div span { color: var(--text-dim); font-size: 14.5px; }
   .steps li a { color: var(--blue-bright); text-decoration: underline; text-underline-offset: 2px; }
+  .steps em { color: var(--text); font-style: normal; font-weight: 600; }
 
   .note {
     margin-top: 28px;
@@ -398,6 +431,7 @@
     border-left: 3px solid var(--orange);
     padding-left: 14px;
   }
+  .note + .note { margin-top: 14px; }
 
   /* ---------- credits / footer ---------- */
   footer {
@@ -415,12 +449,19 @@
   footer a { color: var(--text-dim); text-decoration: none; }
   footer a:hover { color: var(--text); }
   .credits { margin-top: 18px; line-height: 1.7; }
+  .credits a { text-decoration: underline; text-underline-offset: 2px; }
 
   @media (max-width: 860px) {
     .hero { grid-template-columns: 1fr; padding-top: 56px; }
     .phone-stage { order: -1; margin-bottom: 8px; }
     .hero p.lead { max-width: none; }
     nav .nav-links { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .blob { animation: none; }
+    .hero-icon, .hero h1, .hero .tagline, .hero p.lead, .cta-row, .hint, .phone { animation: none; opacity: 1; }
+    .reveal { opacity: 1; transform: none; transition: none; }
   }
 </style>
 </head>
@@ -435,36 +476,39 @@
 <nav>
   <div class="wrap">
     <a class="brand" href="#top">
-      <img src="assets/app-icon.png" alt="Madovai">
+      <img src="assets/app-icon.svg" alt="Madovai">
       Madovai
+      <span class="tag">Android</span>
     </a>
     <div class="nav-links">
       <a href="#features">Cosa fa</a>
       <a href="#showcase">Screenshot</a>
       <a href="#install">Installazione</a>
-      <a href="https://github.com/Gab8bit/Madovai-iOS">GitHub</a>
+      <a href="../ios/">Versione iOS</a>
+      <a href="../">Tutte le versioni</a>
+      <a href="https://github.com/Gab8bit/Madovai">GitHub</a>
     </div>
   </div>
 </nav>
 
 <div id="top" class="wrap hero">
   <div>
-    <img class="hero-icon" src="assets/app-icon.png" alt="Icona Madovai">
+    <img class="hero-icon" src="assets/app-icon.svg" alt="Icona Madovai">
     <h1>Bus e treni del Lazio,<br><span class="accent">su un'unica mappa.</span></h1>
-    <p class="tagline">"Madovai" — ma dove vai?</p>
-    <p class="lead">Cotral (bus e treni extraurbani) e Atac/Roma TPL (trasporto urbano di Roma) insieme, in tempo reale: posizione dei mezzi, orari, ritardi. Niente account, niente configurazione — si apre e si usa.</p>
+    <p class="tagline">"Madovai" — ma dove vai? Ora anche su Android.</p>
+    <p class="lead">Cotral (bus e treni extraurbani) e Atac/Roma TPL (trasporto urbano di Roma) insieme, in tempo reale: posizione dei mezzi, orari, ritardi. App Android nativa, in Material You — niente account, niente configurazione, si apre e si usa.</p>
     <div class="cta-row">
-      <a class="btn btn-primary" href="https://github.com/Gab8bit/Madovai-iOS/releases/latest/download/Madovai.ipa" id="download-btn">
-        ⬇ Scarica l'app (IPA)
+      <a class="btn btn-primary download-btn" href="https://github.com/Gab8bit/Madovai/releases?q=android&amp;expanded=true" id="download-btn">
+        ⬇ Scarica l'app (APK)
       </a>
       <a class="btn btn-ghost" href="#install">Come si installa?</a>
     </div>
-    <p class="hint">Gratuita, open source. Richiede SideStore o AltStore per l'installazione (nessun App Store, per ora).</p>
+    <p class="hint">Gratuita, open source, Android 8.0 o successivo. Si installa direttamente dal file APK, senza Play Store. Hai un iPhone? C'è la <a href="../ios/">versione iOS</a>.</p>
   </div>
   <div class="phone-stage">
     <div class="phone" id="hero-phone">
-      <div class="notch"></div>
-      <div class="screen"><img src="assets/screenshot-map.png" alt="Mappa dell'app Madovai con mezzi Cotral e Atac"></div>
+      <div class="camera"></div>
+      <div class="screen"><img src="assets/screenshot-map.png" alt="Mappa dell'app Madovai per Android con mezzi Cotral e Atac"></div>
     </div>
   </div>
 </div>
@@ -473,27 +517,47 @@
   <div class="wrap">
     <p class="eyebrow reveal">Cosa fa</p>
     <h2 class="reveal">Tutto quello che ti serve per prendere un mezzo</h2>
-    <p class="section-lead reveal">Madovai unisce due reti di trasporto che di solito vivono in due app diverse, e le mostra come se fossero una sola.</p>
+    <p class="section-lead reveal">Madovai unisce due reti di trasporto che di solito vivono in due app diverse, e le mostra come se fossero una sola. Stessi dati e stesso comportamento dell'app iOS, riscritta da zero come app Android nativa.</p>
     <div class="feature-grid">
       <div class="card reveal">
         <div class="icon blue">🗺️</div>
         <h3>Una mappa, due reti</h3>
-        <p>Cotral (extraurbano, tutta la provincia) e Atac/Roma TPL (urbano) sulla stessa mappa, senza dover cambiare app a seconda di dove ti trovi.</p>
+        <p>Cotral (extraurbano, tutta la provincia) e Atac/Roma TPL (urbano) sulla stessa mappa, con fermate e percorsi delle linee disegnati sopra. Non devi cambiare app a seconda di dove ti trovi.</p>
       </div>
       <div class="card reveal">
         <div class="icon orange">📍</div>
         <h3>Mezzi in tempo reale</h3>
-        <p>Vedi dove si trova davvero il tuo bus o treno in questo momento, non solo l'orario a tabella.</p>
+        <p>Vedi dove si trova davvero il tuo bus, tram o treno in questo momento, non solo l'orario a tabella. Tocca "Segui" e la mappa tiene d'occhio il mezzo per te.</p>
       </div>
       <div class="card reveal">
         <div class="icon teal">⏱️</div>
         <h3>Ritardi chiari</h3>
-        <p>"In ritardo di 4 min" o "in anticipo di 2 min", scritto in modo semplice — non un codice o un numero grezzo.</p>
+        <p>"In ritardo di 4 min" o "in anticipo di 2 min", scritto in modo semplice. Quando il tempo reale non c'è, l'app lo dice e mostra l'orario programmato.</p>
       </div>
       <div class="card reveal">
-        <div class="icon green">🔎</div>
-        <h3>Cerca e basta</h3>
-        <p>Cerca una fermata o una linea per nome. Quando manca il tempo reale, l'app mostra comunque l'orario programmato.</p>
+        <div class="icon green">🚆</div>
+        <h3>Treni Cotral live</h3>
+        <p>Metromare (Roma-Lido) e Roma-Viterbo, tratta urbana ed extraurbana: partenze e ritardi dal servizio orari di ASTRAL, con corse soppresse e bus sostitutivi segnalati.</p>
+      </div>
+      <div class="card reveal">
+        <div class="icon blue">🎨</div>
+        <h3>Material You</h3>
+        <p>Su Android 12 e successivi l'app prende i colori dal tuo sfondo (colori dinamici), con tema chiaro e scuro automatici. Sulle versioni precedenti usa il blu di Madovai.</p>
+      </div>
+      <div class="card reveal">
+        <div class="icon teal">🌍</div>
+        <h3>Mappa OpenStreetMap</h3>
+        <p>La mappa usa OpenStreetMap tramite osmdroid: niente Google Maps, niente account Google, niente servizi Google Play necessari. Funziona anche su telefoni senza Play Store.</p>
+      </div>
+      <div class="card reveal">
+        <div class="icon orange">🪟</div>
+        <h3>Schede dal basso</h3>
+        <p>Tocca una fermata o un mezzo e si apre una scheda Material 3 dal basso con le prossime partenze: la tiri su per vedere tutto, la abbassi per tornare alla mappa.</p>
+      </div>
+      <div class="card reveal">
+        <div class="icon green">⭐</div>
+        <h3>Linee e preferiti</h3>
+        <p>Barra di navigazione con Mappa, Linee e Preferiti. Cerca una fermata o una linea per nome, salva quelle che usi ogni giorno e ritrovale con un tocco.</p>
       </div>
     </div>
   </div>
@@ -503,18 +567,18 @@
   <div class="wrap">
     <p class="eyebrow reveal">Come si presenta</p>
     <h2 class="reveal">Semplice da guardare, semplice da usare</h2>
-    <p class="section-lead reveal">Nessun account da creare, nessuna schermata di login: si apre l'app e si vede subito la mappa.</p>
+    <p class="section-lead reveal">Nessun account da creare, nessuna schermata di login: si apre l'app e si vede subito la mappa. I dati si scaricano in sottofondo al primo avvio, intanto la mappa è già utilizzabile.</p>
     <div class="showcase">
       <figure class="reveal">
         <div class="phone">
-          <div class="notch"></div>
-          <div class="screen"><img src="assets/screenshot-schedule.png" alt="Orari in tempo reale di una fermata Cotral"></div>
+          <div class="camera"></div>
+          <div class="screen"><img src="assets/screenshot-schedule.png" alt="Scheda di una fermata con le prossime partenze in tempo reale"></div>
         </div>
-        <figcaption>Orari live per fermata, con ritardi in evidenza</figcaption>
+        <figcaption>Partenze live per fermata, con ritardi in evidenza</figcaption>
       </figure>
       <figure class="reveal">
         <div class="phone">
-          <div class="notch"></div>
+          <div class="camera"></div>
           <div class="screen"><img src="assets/screenshot-linee.png" alt="Elenco linee Cotral e Atac"></div>
         </div>
         <figcaption>Tutte le linee, Cotral e Atac insieme</figcaption>
@@ -526,42 +590,54 @@
 <section id="install">
   <div class="wrap">
     <p class="eyebrow reveal">Installazione</p>
-    <h2 class="reveal">Come si installa (per ora)</h2>
-    <p class="section-lead reveal">Madovai non è ancora sull'App Store. Per installarla oggi serve un piccolo passaggio in più — niente di complicato, si fa una volta sola.</p>
+    <h2 class="reveal">Come si installa</h2>
+    <p class="section-lead reveal">Madovai non è sul Play Store: si installa direttamente dal file APK. Su Android è una procedura normale — si fa una volta sola e ci vuole un minuto.</p>
     <div class="install-panel reveal">
       <p style="margin:0; color:var(--text-dim); font-size:15px;">
-        L'app viene distribuita come file <strong>.ipa</strong> (il formato delle app iOS) e si installa con <strong>SideStore</strong> o <strong>AltStore</strong>: strumenti gratuiti che permettono di installare app fuori dall'App Store usando solo il tuo Apple ID, senza jailbreak.
+        L'app è distribuita come file <strong>.apk</strong> (il formato delle app Android). Visto che non arriva da uno store, Android ti chiede un permesso in più la prima volta: è normale e non serve nessun root né nessuna app aggiuntiva.
       </p>
+      <ul class="req">
+        <li>Richiede <strong>Android 8.0</strong> (API 26) o successivo</li>
+        <li>Colori dinamici da <strong>Android 12</strong></li>
+        <li>Nessun servizio Google necessario</li>
+      </ul>
       <ol class="steps">
         <li>
           <div>
-            <strong>Installa SideStore</strong>
-            <span>Segui la guida ufficiale su <a href="https://sidestore.io" target="_blank" rel="noopener">sidestore.io</a> — richiede un computer solo la primissima volta, poi si rinnova direttamente dall'iPhone.</span>
+            <strong>Scarica l'APK di Madovai dal telefono</strong>
+            <span>Con il pulsante qui sotto, dal browser del telefono (es. Chrome). Se il browser avvisa che il file "potrebbe essere dannoso", scegli <em>Scarica comunque</em>: succede con qualsiasi APK scaricato fuori dal Play Store.</span>
           </div>
         </li>
         <li>
           <div>
-            <strong>Scarica il file Madovai.ipa</strong>
-            <span>Con il pulsante qui sotto, direttamente dal tuo iPhone.</span>
+            <strong>Apri il file scaricato</strong>
+            <span>Tocca la notifica di download completato, oppure apri l'app <em>File</em> / <em>Download</em> e tocca il file <em>Madovai-….apk</em> appena scaricato.</span>
           </div>
         </li>
         <li>
           <div>
-            <strong>Apri il file con SideStore</strong>
-            <span>Dai Download di iOS, tocca <em>Madovai.ipa</em> → "Condividi" → "SideStore" (o apri SideStore e importalo da lì). Conferma l'installazione.</span>
+            <strong>Consenti "Installa app sconosciute"</strong>
+            <span>La prima volta Android dice che per sicurezza il telefono non può installare app da questa fonte. Tocca <em>Impostazioni</em> e attiva <em>Consenti da questa fonte</em> per l'app con cui hai aperto il file (il browser o il file manager), poi torna indietro. Il percorso esatto cambia un po' da marca a marca: di solito è in Impostazioni → App → Accesso speciale → <em>Installa app sconosciute</em>.</span>
           </div>
         </li>
         <li>
           <div>
-            <strong>Trovi l'icona in Home</strong>
-            <span>Da lì in poi Madovai funziona come qualsiasi altra app. Con un Apple ID gratuito, iOS chiede di rinnovarla ogni 7 giorni: SideStore lo fa da solo se l'iPhone è connesso a internet ogni tanto.</span>
+            <strong>Tocca "Installa"</strong>
+            <span>Se compare Google Play Protect ("App bloccata" o "App non sicura", oppure la proposta di inviarla per la scansione), tocca <em>Altri dettagli</em> → <em>Installa comunque</em>. Play Protect avvisa perché l'app non viene dal Play Store e non è firmata da uno sviluppatore registrato presso Google, non perché abbia trovato qualcosa: il codice sorgente è pubblico su GitHub.</span>
+          </div>
+        </li>
+        <li>
+          <div>
+            <strong>Apri Madovai</strong>
+            <span>All'avvio l'app chiede la posizione (facoltativa, serve solo per centrare la mappa su di te). Se vuoi, ora puoi anche rimettere a "no" il permesso "Installa app sconosciute" del browser: l'app installata resta.</span>
           </div>
         </li>
       </ol>
       <div style="margin-top:32px; text-align:center;">
-        <a class="btn btn-primary" href="https://github.com/Gab8bit/Madovai-iOS/releases/latest/download/Madovai.ipa">⬇ Scarica Madovai.ipa</a>
+        <a class="btn btn-primary download-btn" href="https://github.com/Gab8bit/Madovai/releases?q=android&amp;expanded=true">⬇ Scarica l'APK di Madovai</a>
       </div>
-      <p class="note">Perché non l'App Store? Pubblicarci richiede un account sviluppatore Apple a pagamento (99$/anno). Non è escluso in futuro — per ora questa è la via gratuita.</p>
+      <p class="note">Perché non il Play Store? Pubblicarci richiede un account sviluppatore Google Play e la verifica dell'identità presso Google. Non è escluso in futuro — per ora l'APK diretto è la via più semplice.</p>
+      <p class="note">Aggiornamenti: quando esce una nuova versione, scarica il nuovo APK dalla <a href="https://github.com/Gab8bit/Madovai/releases?q=android&amp;expanded=true" style="color:var(--text-dim)">pagina delle release</a> e installalo sopra quello vecchio: preferiti e dati già scaricati restano.</p>
     </div>
   </div>
 </section>
@@ -569,17 +645,32 @@
 <footer>
   <div class="wrap">
     <div class="foot-row">
-      <span>© 2026 Madovai — progetto indipendente, non affiliato con Cotral o con Roma Capitale/Atac.</span>
-      <span><a href="https://github.com/Gab8bit/Madovai-iOS">Codice sorgente su GitHub ↗</a></span>
+      <span>© 2026 Madovai — progetto indipendente, non affiliato con Cotral, ASTRAL o con Roma Capitale/Atac.</span>
+      <span><a href="https://github.com/Gab8bit/Madovai">Codice sorgente su GitHub ↗</a> · <a href="../ios/">Versione iOS ↗</a> · <a href="../">Web ↗</a></span>
     </div>
     <div class="credits">
       Dati fermate e linee: feed pubblici GTFS di Cotral, e di Roma Servizi per la Mobilità (licenza CC-BY 3.0 Italia) per Atac/Roma TPL.<br>
-      Posizioni in tempo reale: endpoint pubblici di Cotral e feed GTFS-Realtime di Roma Servizi per la Mobilità.
+      Posizioni in tempo reale: endpoint pubblici di Cotral, servizio orari di ASTRAL per i treni Cotral, e feed GTFS-Realtime di Roma Servizi per la Mobilità.<br>
+      Mappa: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (ODbL), visualizzata con osmdroid.
     </div>
   </div>
 </footer>
 
 <script>
+  // Download buttons: the HTML href is the Android releases list (works without JS). The repo holds
+  // every platform (tags ios-v…, android-v…), so "latest" may be an iOS-only release: ask the API for
+  // recent releases and use the newest one that ships an .apk (asset names are versioned on purpose).
+  fetch('https://api.github.com/repos/Gab8bit/Madovai/releases?per_page=50', { headers: { 'Accept': 'application/vnd.github+json' } })
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(releases => {
+      for (const release of releases) {
+        if (release.draft || release.prerelease) continue;
+        const apk = (release.assets || []).find(a => /\.apk$/i.test(a.name));
+        if (apk) { document.querySelectorAll('.download-btn').forEach(a => { a.href = apk.browser_download_url; }); return; }
+      }
+    })
+    .catch(() => { /* keep the releases-page fallback */ });
+
   // Scroll-reveal
   const io = new IntersectionObserver((entries) => {
     entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });

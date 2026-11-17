@@ -1,0 +1,320 @@
+/* Madovai Web — iOS look & feel (HIG tokens, "liquid glass" materials). No framework, no build step. */
+
+:root {
+  color-scheme: light dark;
+  /* iOS system colours (light) */
+  --blue: #007aff; --green: #34c759; --red: #ff3b30; --orange: #ff9500; --yellow: #ffcc00;
+  --teal: #30b0c7; --indigo: #5856d6; --purple: #af52de; --gray: #8e8e93;
+  /* App accent (AccentColor.colorset in the iOS app) */
+  --accent: #1e5ea8;
+  --tint: #1e5ea8;
+  --tint-soft: rgba(30, 94, 168, 0.14);
+
+  --bg: #f2f2f7;            /* systemGroupedBackground */
+  --bg-elev: #ffffff;       /* secondarySystemGroupedBackground */
+  --bg-sheet: #ffffff;
+  --text: #000000;
+  --text-2: rgba(60, 60, 67, 0.6);
+  --text-3: rgba(60, 60, 67, 0.3);
+  --sep: rgba(60, 60, 67, 0.18);
+  --fill: rgba(120, 120, 128, 0.12);
+  --fill-2: rgba(120, 120, 128, 0.2);
+  --grabber: rgba(60, 60, 67, 0.3);
+
+  /* Liquid-glass material */
+  --glass-bg: rgba(255, 255, 255, 0.62);
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.14), 0 1px 3px rgba(0, 0, 0, 0.08);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+  --glass-blur: blur(22px) saturate(1.8);
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tabbar-h: 62px;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --blue: #0a84ff; --green: #30d158; --red: #ff453a; --orange: #ff9f0a; --yellow: #ffd60a;
+    --teal: #40c8e0; --indigo: #5e5ce6; --purple: #bf5af2; --gray: #8e8e93;
+    --tint: #4a90e2;
+    --tint-soft: rgba(74, 144, 226, 0.2);
+    --bg: #000000;
+    --bg-elev: #1c1c1e;
+    --bg-sheet: #1c1c1e;
+    --text: #ffffff;
+    --text-2: rgba(235, 235, 245, 0.6);
+    --text-3: rgba(235, 235, 245, 0.3);
+    --sep: rgba(84, 84, 88, 0.6);
+    --fill: rgba(120, 120, 128, 0.24);
+    --fill-2: rgba(120, 120, 128, 0.36);
+    --grabber: rgba(235, 235, 245, 0.3);
+    --glass-bg: rgba(40, 40, 44, 0.58);
+    --glass-border: rgba(255, 255, 255, 0.14);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+    --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: var(--font); font-size: 17px; line-height: 1.3; color: var(--text); background: var(--bg);
+  overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none; touch-action: manipulation;
+}
+#app { position: fixed; inset: 0; overflow: hidden; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+input, textarea, select { font: inherit; color: inherit; user-select: text; -webkit-user-select: text; }
+.icon { display: inline-block; vertical-align: middle; flex: none; }
+
+/* ───────── Typography (iOS text styles) ───────── */
+.t-title3 { font-size: 20px; font-weight: 700; line-height: 1.2; }
+.t-headline { font-size: 17px; font-weight: 600; }
+.t-sub { font-size: 15px; }
+.t-foot { font-size: 13px; }
+.t-cap { font-size: 12px; }
+.t-cap2 { font-size: 11px; }
+.semibold { font-weight: 600; }
+.bold { font-weight: 700; }
+.sec { color: var(--text-2); }
+.ter { color: var(--text-3); }
+.mono { font-variant-numeric: tabular-nums; }
+.red { color: var(--red); } .green { color: var(--green); } .orange { color: var(--orange); }
+.row { display: flex; align-items: center; } .col { display: flex; flex-direction: column; }
+.grow { flex: 1 1 auto; min-width: 0; } .nowrap { white-space: nowrap; }
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ───────── Liquid-glass material ───────── */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 0.5px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+.glass-soft { /* iOS ".thinMaterial" — banners and the search bar */
+  background: color-mix(in srgb, var(--bg-elev) 66%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6);
+  border: 0.5px solid var(--glass-border);
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.08), var(--glass-highlight);
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .glass, .glass-soft { background: var(--bg-elev); }
+}
+
+/* ───────── Tab screens + tab bar ───────── */
+.tab-screen { position: absolute; inset: 0; display: none; background: var(--bg); }
+.tab-screen.active { display: block; }
+.tab-screen.map-screen { background: #ddd; }
+
+.tabbar {
+  position: fixed; z-index: 1000; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--safe-bottom) + 8px);
+  display: flex; gap: 2px; padding: 5px; border-radius: 999px;
+  max-width: calc(100vw - 24px);
+}
+.tabbar .tab {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-width: 72px; padding: 7px 12px 6px; border-radius: 999px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.1px; color: var(--text-2);
+  transition: color 0.2s, background 0.25s, transform 0.2s;
+}
+.tabbar .tab:active { transform: scale(0.94); }
+.tabbar .tab.active { color: var(--tint); background: var(--fill-2); }
+.tabbar .tab .icon { width: 24px; height: 24px; }
+
+/* ───────── Navigation bar + lists (iOS "NavigationView", inline title) ───────── */
+.navscreen { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--bg); }
+.navbar {
+  flex: none; position: relative; z-index: 2; height: calc(44px + var(--safe-top)); padding-top: var(--safe-top);
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8); backdrop-filter: blur(20px) saturate(1.8);
+  border-bottom: 0.5px solid var(--sep);
+}
+.navbar .title { font-size: 17px; font-weight: 600; max-width: 55%; }
+.navbar .leading, .navbar .trailing { position: absolute; bottom: 0; height: 44px; display: flex; align-items: center; padding: 0 8px; color: var(--tint); }
+.navbar .leading { left: 0; } .navbar .trailing { right: 0; }
+.navbar .nav-btn { display: flex; align-items: center; gap: 2px; padding: 8px; font-size: 17px; color: var(--tint); border-radius: 10px; }
+.navbar .nav-btn:active { opacity: 0.4; }
+.navbar .nav-btn.disabled { color: var(--text-3); pointer-events: none; }
+
+.scroll { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 30px); }
+.scroll.in-sheet { padding-bottom: calc(var(--safe-bottom) + 24px); }
+
+.list-section { margin: 0 0 22px; }
+.list-header { padding: 0 32px 6px; font-size: 13px; text-transform: uppercase; color: var(--text-2); letter-spacing: 0.2px; }
+.list-footer { padding: 6px 32px 0; font-size: 13px; color: var(--text-2); }
+.list-card { margin: 0 16px; background: var(--bg-elev); border-radius: 12px; overflow: hidden; }
+.list-row {
+  position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 10px 16px; text-align: left;
+  background: transparent;
+}
+.list-row + .list-row::before, .list-row + .swipe-wrap::before, .swipe-wrap + .list-row::before, .swipe-wrap + .swipe-wrap::before {
+  content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 0.5px; background: var(--sep); z-index: 1;
+}
+button.list-row:active, .list-row.pressable:active { background: var(--fill); }
+.chevron { color: var(--text-3); }
+.list-card > .pad { padding: 12px 16px; }
+.list-plain .list-row { padding-left: 16px; }
+.big-top { padding-top: 12px; }
+
+/* swipe-to-delete rows (Promemoria) */
+.swipe-wrap { position: relative; overflow: hidden; }
+.swipe-wrap .swipe-action {
+  position: absolute; top: 0; bottom: 0; right: 0; width: 88px; display: flex; align-items: center; justify-content: center;
+  background: var(--red); color: #fff; font-weight: 600; font-size: 17px;
+}
+.swipe-wrap .swipe-content { position: relative; background: var(--bg-elev); transition: transform 0.25s ease; will-change: transform; }
+.swipe-wrap.dragging .swipe-content { transition: none; }
+
+/* ───────── Buttons ───────── */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 10px; font-weight: 600; white-space: nowrap; transition: opacity 0.15s, transform 0.15s; }
+.btn:active { opacity: 0.55; }
+.btn-bordered { background: var(--tint-soft); color: var(--tint); padding: 8px 14px; font-size: 15px; }
+.btn-bordered.small { padding: 5px 11px; font-size: 13px; border-radius: 8px; }
+.btn-bordered.orange { background: rgba(255, 149, 0, 0.16); color: var(--orange); }
+.btn-prominent { background: var(--tint); color: #fff; padding: 9px 16px; font-size: 15px; }
+.btn-destructive { color: var(--red); }
+.btn-link { color: var(--tint); font-size: 15px; }
+.btn[disabled] { opacity: 0.4; pointer-events: none; }
+.btn-stack { flex-direction: column; gap: 3px; padding: 7px 12px; font-size: 11px; font-weight: 500; }
+
+.glass-btn { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--tint); transition: transform 0.15s; }
+.glass-btn:active { transform: scale(0.92); }
+.glass-btn.on { color: var(--tint); background: color-mix(in srgb, var(--tint) 22%, var(--glass-bg)); }
+.glass-btn.off { color: var(--text-2); }
+
+/* ───────── Segmented control ───────── */
+.segmented { display: flex; padding: 2px; border-radius: 9px; background: var(--fill); gap: 0; position: relative; }
+.segmented button {
+  flex: 1 1 0; min-width: 0; padding: 6px 8px; border-radius: 7px; font-size: 13px; font-weight: 500; text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background 0.2s, box-shadow 0.2s;
+}
+.segmented button.on { background: #fff; font-weight: 600; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04); }
+@media (prefers-color-scheme: dark) { .segmented button.on { background: #636366; } }
+
+/* ───────── Bottom sheet ───────── */
+.sheet-layer { position: fixed; inset: 0; z-index: 1100; pointer-events: none; }
+.sheet-scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.32); opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.sheet-scrim.on { opacity: 1; pointer-events: auto; }
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; margin: 0 auto; max-width: 680px; pointer-events: auto;
+  background: var(--bg-sheet); border-radius: 22px 22px 0 0; display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 -4px 40px rgba(0, 0, 0, 0.22);
+  transition: height 0.34s cubic-bezier(0.32, 0.72, 0, 1), transform 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: height, transform;
+}
+.sheet.dragging { transition: none; }
+.sheet .grabber-zone { flex: none; padding: 7px 0 3px; touch-action: none; cursor: grab; }
+.sheet .grabber { width: 36px; height: 5px; border-radius: 3px; background: var(--grabber); margin: 0 auto; }
+.sheet .sheet-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; position: relative; }
+.sheet .sheet-body > .navscreen { position: relative; flex: 1 1 auto; min-height: 0; background: var(--bg-sheet); }
+.sheet.form-sheet { background: var(--bg); }
+.sheet.form-sheet .grabber-zone { background: var(--bg); }
+
+.sheet-header { touch-action: none; flex: none; padding: 8px 16px 12px; display: flex; align-items: flex-start; gap: 8px; }
+.divider { flex: none; height: 0.5px; background: var(--sep); }
+.sheet-list { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 0 16px calc(var(--safe-bottom) + 24px); }
+.sheet-pad { padding: 8px 16px; flex: none; }
+
+/* ───────── Rows used in sheets ───────── */
+.t-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; }
+.t-row.center { align-items: center; }
+.t-time { width: 76px; flex: none; white-space: nowrap; }
+.t-time .big { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.status { display: flex; align-items: center; gap: 4px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--gray); }
+.dot.green { background: var(--green); } .dot.yellow { background: var(--yellow); } .dot.gray { background: var(--gray); }
+.dot.pulse { animation: pulse 0.9s ease-in-out infinite alternate; }
+@keyframes pulse { from { transform: scale(1); opacity: 1; } to { transform: scale(1.5); opacity: 0.5; } }
+.capsule { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; color: #fff; white-space: nowrap; }
+.capsule.red { background: var(--red); color: #fff; } .capsule.accent { background: var(--accent); }
+.dim { opacity: 0.55; }
+.notice { display: flex; gap: 8px; align-items: flex-start; padding: 8px 16px; font-size: 12px; color: var(--text-2); background: var(--fill); }
+.notice .icon { margin-top: 1px; }
+
+/* ───────── Banners / states ───────── */
+.banner { margin: 0 16px; padding: 12px; border-radius: 14px; display: flex; gap: 12px; align-items: flex-start; }
+.banner .b-title { font-size: 15px; font-weight: 700; } .banner .b-text { font-size: 13px; color: var(--text-2); }
+.empty { padding: 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; color: var(--text-2); }
+.empty .e-title { font-size: 17px; font-weight: 600; color: var(--text); }
+.empty .e-msg { font-size: 13px; max-width: 320px; }
+.center-fill { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; flex-direction: column; min-height: 140px; }
+.spinner { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--fill-2); border-top-color: var(--text-2); animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.tracking-banner { flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 16px; }
+.tracking-banner.ok { background: rgba(255, 149, 0, 0.12); } .tracking-banner.lost { background: rgba(255, 59, 48, 0.12); }
+
+/* ───────── Forms (Promemoria) ───────── */
+.form-field { width: 100%; padding: 12px 16px; border: 0; background: transparent; outline: none; font-size: 17px; }
+.chips { display: flex; gap: 6px; padding: 10px 12px; }
+.chip { flex: 1 1 0; padding: 7px 0; border-radius: 999px; font-size: 13px; font-weight: 600; background: var(--fill); text-align: center; transition: background 0.15s, color 0.15s; }
+.chip.on { background: var(--tint); color: #fff; }
+.time-input { appearance: none; -webkit-appearance: none; background: var(--fill); border: 0; border-radius: 9px; padding: 8px 12px; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); min-width: 120px; text-align: center; }
+.select { appearance: none; -webkit-appearance: none; background: var(--fill); border: 0; border-radius: 9px; padding: 9px 12px; font-size: 15px; width: 100%; color: var(--text); }
+
+/* ───────── Map screen ───────── */
+.map-root { position: absolute; inset: 0; }
+.leaflet-container { font-family: var(--font); background: #e8e8ed; -webkit-tap-highlight-color: transparent; }
+@media (prefers-color-scheme: dark) { .leaflet-container { background: #1b1b1d; } }
+.leaflet-control-zoom { display: none; }
+.base-tiles { filter: grayscale(0.6) saturate(0.8) brightness(1.04) contrast(0.9); }
+@media (prefers-color-scheme: dark) {
+  .base-tiles { filter: invert(1) hue-rotate(180deg) grayscale(0.55) brightness(0.82) contrast(0.88); }
+}
+.leaflet-bottom.leaflet-left { bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 18px); }
+.leaflet-control-attribution { font-size: 9px !important; background: var(--glass-bg) !important; border-radius: 8px; padding: 1px 6px !important; color: var(--text-2) !important; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.leaflet-control-attribution a { color: var(--text-2) !important; }
+
+.map-top { position: absolute; z-index: 900; top: 0; left: 0; right: 0; padding-top: calc(var(--safe-top) + 8px); display: flex; flex-direction: column; gap: 8px; pointer-events: none; max-width: 680px; margin: 0 auto; }
+.map-top > * { pointer-events: auto; }
+.map-controls { position: absolute; z-index: 900; right: 16px; bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 28px); display: flex; flex-direction: column; gap: 12px; }
+.search-wrap { padding: 0 16px; }
+.search-bar { display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 14px; }
+.search-bar input { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; font-size: 17px; }
+.search-bar input::placeholder { color: var(--text-2); }
+.search-results { margin-top: 6px; max-height: min(320px, 46vh); overflow-y: auto; border-radius: 14px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.sr-header { padding: 8px 12px 2px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+.sr-row { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; padding: 8px 12px; position: relative; }
+.sr-row .icon { margin-top: 2px; color: var(--text-2); }
+.sr-row + .sr-row::before { content: ""; position: absolute; top: 0; left: 40px; right: 0; height: 0.5px; background: var(--sep); }
+.sr-row:active { background: var(--fill); }
+
+/* markers (Leaflet divIcons) */
+.pin-wrap { background: none; border: 0; }
+.pole-pin { position: relative; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); }
+.pole-pin::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 10px; height: 10px; background: inherit; transform: translateX(-50%) rotate(45deg); border-right: 2px solid #fff; border-bottom: 2px solid #fff; border-radius: 0 0 3px 0; z-index: -1; }
+.atac-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--orange); border: 1.5px solid #fff; box-shadow: 0 0 2px rgba(0, 0, 0, 0.4); }
+.veh-pin { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; border: 1.5px solid #fff; font-size: 9px; font-weight: 700; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); }
+.zoom-low .veh-pin { transform: scale(0.5); box-shadow: none; }
+.follow-pin { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; background: var(--orange); border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); transition: background 0.25s, opacity 0.25s; }
+.follow-pin.lost { background: var(--gray); opacity: 0.65; }
+.me-dot { width: 18px; height: 18px; border-radius: 50%; background: #0a84ff; border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.35); }
+.leaflet-tooltip.madovai-tip { background: var(--bg-elev); color: var(--text); border: 0; border-radius: 10px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22); font-family: var(--font); font-size: 13px; padding: 6px 10px; }
+.leaflet-tooltip.madovai-tip::before { display: none; }
+
+/* focus-line banner uses .banner + .glass-soft */
+.legend-dot { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; flex: none; }
+
+/* wide screens: keep content column readable */
+@media (min-width: 760px) {
+  .list-card, .list-header, .list-footer { margin-left: auto; margin-right: auto; max-width: 640px; }
+  .list-card { width: calc(100% - 32px); }
+  .list-header, .list-footer { width: calc(100% - 32px); padding-left: 16px; padding-right: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; } }
+
+/* Our own clear (x) button replaces the browser's native one in search fields. */
+input[type="search"]::-webkit-search-cancel-button, input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
+
+/* ───────── Boot splash + loading hints (slow connections) ───────── */
+#boot { position: fixed; inset: 0; z-index: 5000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: var(--bg); transition: opacity 0.35s; text-align: center; }
+#boot.done { opacity: 0; pointer-events: none; }
+#boot img { border-radius: 19px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18); }
+.spinner.small { width: 16px; height: 16px; border-width: 2px; }
+.loading-banner { margin: 0 16px; padding: 12px 16px; border-radius: 14px; display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 600; }
+.loading-banner .spinner { width: 24px; height: 24px; border-width: 3px; border-top-color: var(--tint); }
+.inline-loading { display: flex; align-items: center; gap: 10px; color: var(--text-2); font-size: 15px; }

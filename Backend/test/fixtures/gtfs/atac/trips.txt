@@ -1,0 +1,7 @@
+route_id,service_id,trip_id,trip_headsign,trip_short_name,direction_id,block_id,shape_id,wheelchair_accessible,exceptional
+MEA,S1,1#1-1,"ANAGNINA (MA)","26463918",0,"",SH1,0,0
+MEA,S1,1#1-2,"BATTISTINI","26463919",1,"",SH2,0,0
+211,S1,1#2-1,"P.LE FLAMINIO","26463920",0,"",SH3,0,0
+211,S2,1#2-2,"VALLE D'AOSTA","26463921",1,"",SH3,0,0
+8,S1,1#3-1,"","26463922",0,"",,0,0
+C11,S1,1#4-1,"CIMITERO LAURENTINO","26463923",0,"",SH4,0,0

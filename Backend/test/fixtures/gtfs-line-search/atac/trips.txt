@@ -1,0 +1,12 @@
+route_id,service_id,trip_id,trip_headsign,trip_short_name,direction_id,block_id,shape_id,wheelchair_accessible,exceptional
+MEB,S1,M-0a,"REBIBBIA (MB)","1",0,"",MS0,0,0
+MEB,S1,M-0b,"PIRAMIDE","2",0,"",MS0,0,0
+MEB,S1,M-1a,"LAURENTINA (MB)","3",1,"",MS1,0,0
+90,S1,B-0x,"ARRIVO","4",0,"",SA,0,0
+90,S1,B-0y,"ARRIVO","5",0,"",SB,0,0
+90,S1,B-0z,"ARRIVO","6",0,"",SB,0,0
+90,S1,B-1,"ZETA","7",1,"",SC,0,0
+C2,S1,T-main,"TRONCO 4","8",0,"",ST,0,0
+C2,S1,T-branch,"DIRAMAZIONE","9",0,"",SQ,0,0
+C2,S1,T-early,"TRONCO 3","10",0,"",SQ,0,0
+MEA,S1,A-0,"BATTISTINI","11",0,"",,0,0

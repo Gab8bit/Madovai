@@ -1,0 +1,9 @@
+route_id,agency_id,route_short_name,route_long_name,route_type,route_url,route_color,route_text_color
+MEB,OP1,MEB,,1,,0A3D91,
+90,OP1,90,,3,,,
+C2,OP1,C2,,3,,,
+MEA,OP1,MEA,,1,,E85C1F,
+64,OP1,64,,3,,,
+640,OP1,640,,3,,,
+664,OP1,664,,3,,,
+502,OP3,502,"CINECITTA' METRO A - CARNEVALE",3,,,

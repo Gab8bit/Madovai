@@ -1,0 +1,5 @@
+stop_id,stop_name,stop_lat,stop_lon,location_type,parent_station
+"1021","ARTENA | Campo Sportivo # 1021","41.7465401809","12.9150952057","0",""
+"f5236","FROSINONE | I.I.S. "Turriziani" Piazza Gramsci # f5236","41.6338091323","13.3524603189","0",""
+"7001","ROMA (Anagnina) Metro A # 7001","41.8423","12.5866","0",""
+"7002","ROMA ! Termini # 7002","41.9010","12.5010","0",""

@@ -1,0 +1,5 @@
+stop_id,stop_code,stop_name,stop_desc,stop_lat,stop_lon,stop_url,wheelchair_boarding,stop_timezone,location_type,parent_station
+05000,05000,"TERMINI (MA-MB-FS)",,41.901308,12.500433,,,,,
+05001,05001,"TERMINI (MA-MB-FS)",,41.901000,12.501000,,,,,
+70180,70180,"ANAGNINA",,41.842300,12.586600,,,,,
+70181,70181,"P.LE FLAMINIO",,41.911000,12.476000,,,,,

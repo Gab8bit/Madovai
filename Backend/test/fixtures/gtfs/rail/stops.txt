@@ -1,0 +1,4 @@
+stop_id,stop_name,stop_lat,stop_lon
+"RL_PORTASPAOLO","Porta San Paolo","41.8750","12.4819"
+"RL_ACILIA","Acilia","41.7832974","12.36061706"
+"RL_COLOMBO","Cristoforo Colombo","41.7177","12.3105"

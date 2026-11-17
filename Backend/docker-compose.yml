@@ -1,0 +1,19 @@
+# Uso: docker compose up -d --build   →   http://localhost:8083/health  ·  http://localhost:8083/docs
+services:
+  madovai-backend:
+    build: .
+    image: madovai-backend:latest
+    container_name: madovai-backend
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "8083:3000"
+    volumes:
+      - madovai_data:/data
+    # Il build dei dati GTFS usa ~250 MB di RAM per circa un minuto (una volta al giorno).
+    mem_limit: 768m
+
+volumes:
+  madovai_data:

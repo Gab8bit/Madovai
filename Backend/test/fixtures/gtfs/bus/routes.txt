@@ -1,0 +1,3 @@
+route_id,agency_id,route_short_name,route_long_name,route_type,route_color,route_text_color
+"2003","Cotral","AA009A","Morlupo - Prima Porta # AA009A","3","003C71","FFFFFF"
+"126","Cotral","AB017B","Roma Anagnina - Artena # AB017B","3","003C71","FFFFFF"

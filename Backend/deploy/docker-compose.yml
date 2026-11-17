@@ -1,0 +1,21 @@
+# Produzione (VM Docker). Copiato da scripts/deploy.sh in /opt/madovai-backend sulla VM.
+# L'immagine arriva già costruita dal Mac (nessun sorgente sulla VM); configurazione nel file .env accanto a questo.
+services:
+  madovai-backend:
+    image: madovai-backend:latest
+    container_name: madovai-backend
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "8083:3000"
+    volumes:
+      - ./data:/data
+      - ./secrets:/secrets:ro
+    mem_limit: 768m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

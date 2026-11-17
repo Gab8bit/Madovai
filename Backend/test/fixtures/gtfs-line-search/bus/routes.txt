@@ -1,0 +1,3 @@
+route_id,agency_id,route_short_name,route_long_name,route_type,route_color,route_text_color
+"500","Cotral","CF500A","Velletri - Roma Anagnina # CF500A","3","003C71","FFFFFF"
+"501","Cotral","AR64D","Arpino - Sora # AR64D","3","003C71","FFFFFF"

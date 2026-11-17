@@ -1,0 +1,9 @@
+stop_id,stop_name,stop_lat,stop_lon,location_type,parent_station
+"f1","GENZANO | Piazza # f1","41.70","12.68","0",""
+"f2","ROMA | Anagnina (Metro A) # f2","41.84","12.58","0",""
+"f3","VELLETRI | Stazione FS # f3","41.68","12.77","0",""
+"f4","LANUVIO | Bivio # f4","41.69","12.70","0",""
+"f5","ROMA | Termini FS (Piazza Cinquecento) # f5","41.90","12.50","0",""
+"f6","ROMA | Termini FS (Giolitti) # f6","41.899","12.503","0",""
+"f7","RIETI | Via Salaria Via Terminillo # f7","42.40","12.88","0",""
+"f8","CITTÀ DELLA PIEVE | Piazza # f8","42.95","12.00","0",""
